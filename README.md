@@ -1,122 +1,159 @@
 # MOMI MASALA — Rate Card Editor
 
-A mobile-first, editable rate card for MOMI MASALA's 9 premium spice
-items, with a modern glass-style app UI wrapped around a richer,
-traditional maroon/cream/gold rate card. Open `index.html` directly in
-any browser — no server, build step, or install required.
+A mobile-first, editable rate card app with a real local database
+(IndexedDB), full product management (add/remove/edit), local backup
+& restore, and a modern glass-style UI wrapped around a richer,
+traditional maroon/cream/gold rate card.
+
+Designed to run inside an Android WebView (Vercel → WebIntoApp APK) —
+everything works fully offline after the first load. No server or
+internet connection is required for normal use.
 
 ## How to use
 
-- Open `index.html` on your phone or computer.
-- Tap any **weight (kg)** or **price** value to edit it. Everything
-  else (product photos, names, numbering, branding, contact info) is
-  fixed.
-- Tap **Save** in the top-right header for a dropdown with **PDF**,
-  **PNG**, or **JPG** — each downloads the rate card with your latest
-  edits and none of the app's own UI (no buttons, no input borders).
-- Tap **Share** to hand the rate card straight to your device's native
-  share sheet (WhatsApp, Mail, Messages, etc.) where supported. If the
-  browser doesn't support file sharing, it lets you know so you can use
-  Save instead rather than doing nothing.
+- Open `index.html` on your phone or computer (or the packaged APK).
+- **Tap a product card** to see its full, uncropped photo in an
+  expandable sheet along with its name, weight, and price.
+- **Tap a weight or price value** directly to edit it — saved to the
+  local database immediately, survives refresh/close/reopen.
+- **Tap the (+) button** (bottom-right) to add a new product: pick an
+  image from the device, fill in both names, weight (kg), and price.
+- **Tap the (−) icon** on a product's photo to remove it, with a
+  confirmation step first — nothing is ever deleted silently.
+- **Tap the database icon** (top-left of the header controls) to open
+  **Backup & Data**: create a downloadable backup file, restore from
+  one, and see when the last backup was made and how many products are
+  currently stored.
+- **Save** (top-right) still exports the current rate card as a
+  PDF, PNG, or JPG. **Share** still hands it to the device's native
+  share sheet where supported.
 
 ## Project structure
 
 ```
-index.html               Page shell, loads css/js in order
-css/style.css             All styling (glass app UI + rate card design)
-js/products.js            Product data (names, weight in kg, price) — edit here
-js/product-images.js      Product photos + logo + shop banner, base64-embedded
-js/render.js               Builds the rate card DOM from the data
-js/editor.js                Tap-to-edit behaviour + responsive scaling
-js/export.js                 Save (PDF/PNG/JPG) + Share logic
-js/html2canvas.min.js      Vendored rasterizing library (works offline)
-js/jspdf.min.js             Vendored PDF library (works offline)
-assets/products/*.jpg      Original product photos, kept for reference
-assets/brand/               Logo (transparent PNG) + cropped shop banner
+index.html                Page shell: header, sheets/modals, script loading order
+css/style.css              All styling (glass app UI + rate card + sheets/modals)
+
+js/db.js                    IndexedDB abstraction — the ONLY file that touches
+                             indexedDB directly. Two object stores: "products"
+                             and "meta" (migration flag, last-backup timestamp).
+js/image-utils.js           Tiny helpers: base64 data URL <-> Blob conversion.
+js/products.js               DEFAULT_PRODUCTS seed data (used once, on first
+                             launch only) + BRAND/CONTACT + formatWeightKg().
+js/app-state.js              Owns the live, in-memory product list. Everything
+                             else reads AppState.products and calls its methods
+                             (updateField, addProduct, removeProduct,
+                             replaceAllWithBackup) instead of touching db.js
+                             or IndexedDB directly.
+js/backup.js                  Builds/validates/parses the backup JSON format.
+                             Pure logic only — no DOM/UI code.
+js/render.js                  Builds the rate card DOM (product cards, header,
+                             footer) from AppState.products.
+js/editor.js                   Tap-to-edit wiring, the remove-confirmation flow,
+                             tap-to-expand wiring, and the fixed-width-card
+                             responsive scaling.
+js/ui-manage.js                Add-Product modal, generic confirm dialog, the
+                             expand sheet, and the Backup & Data panel — all
+                             the "app chrome" interactions that aren't the
+                             rate card itself.
+js/export.js                   Save (PDF/PNG/JPG) + Share, reading from
+                             AppState.products so exports always reflect
+                             whatever's currently in the database.
+js/html2canvas.min.js / js/jspdf.min.js   Vendored, work fully offline.
+
+assets/products/*.jpg      Original seed product photos, kept for reference.
+assets/brand/                Logo (transparent PNG) + cropped shop banner.
 ```
 
-## Editing product data
+## Data flow
 
-Everything about a product lives in one place: `js/products.js`. There
-are exactly **9 products** — Cinnamon (id 3) is the one product with
-**two** images shown together in a single card; every other product
-has one.
+```
+UI  →  AppState (in-memory)  →  DB.js  →  IndexedDB (on-device)
+```
 
-```js
+Nothing renders directly from IndexedDB — `AppState.reload()` pulls
+everything out, converts each product's stored image Blobs into
+`blob:` object URLs (safe to use directly as `<img src>` and safe for
+canvas export, unlike `file://`-referenced images), and *that* is what
+`render.js` draws from. Any change (edit/add/remove/restore) updates
+IndexedDB first, then calls `AppState.reload()` and re-renders.
+
+Backup follows the same shape in reverse: `DB.getAllProducts()` →
+convert each image Blob to a base64 string → one JSON file. Restore
+reverses it: base64 → Blob → straight into IndexedDB, replacing
+whatever was there (only after the user confirms, and only after the
+file has been validated as a real backup).
+
+## First-launch migration
+
+On first open, `AppState.init()` checks the `meta.migrated` flag in
+IndexedDB. If it's not set, the 9 products in `DEFAULT_PRODUCTS`
+(products.js) get converted from their bundled base64 images into
+Blobs and written into IndexedDB, and the flag is set. Every launch
+after that skips migration entirely and loads straight from IndexedDB
+— editing `DEFAULT_PRODUCTS` after the app has been used once has no
+effect, since IndexedDB is already the source of truth. Verified this
+doesn't duplicate products across repeated reloads.
+
+## Backup file format
+
+```
+MOMI-MASALA-BACKUP-YYYY-MM-DD-HH-MM.json
+```
+
+```json
 {
-  id: 1,
-  nameBn: "এলাচ",
-  nameEn: "Cardamom",
-  images: [PRODUCT_IMAGES.cardamom],
-  weightKg: 0.025,
-  price: 60,
+  "app": "MOMI MASALA Rate Card Editor",
+  "formatVersion": 1,
+  "backupCreatedAt": 1755344520000,
+  "productCount": 9,
+  "products": [
+    {
+      "id": 1, "nameBn": "এলাচ", "nameEn": "Cardamom",
+      "weightKg": 0.025, "price": 60, "position": 1,
+      "createdAt": 1755344000000, "updatedAt": 1755344000000,
+      "images": ["data:image/jpeg;base64,..."]
+    }
+  ]
 }
 ```
 
-Weight is stored as a plain number **in kilograms** (`0.025`, not
-`"25gm"`). `formatWeightKg()` in `products.js` turns it into the
-display string, matching the pattern from the spec: whole numbers show
-plain (`1 kg`), everything else shows 3 decimals (`0.025 kg`,
-`0.100 kg`). Day-to-day weight/price changes don't need any of this —
-they're editable directly by tapping the field in the app.
+Everything needed to fully reconstruct the catalogue — including the
+actual image bytes — lives inside this one file. If the APK's storage
+is ever cleared, restoring this file brings everything back exactly as
+it was.
 
-## Why images are base64-embedded
+## Product numbering vs database ID
 
-The real photo/logo/banner files are also kept under `assets/` so the
-project stays easy to browse and maintain, but `js/product-images.js`
-embeds the same images as base64 and that's what the app actually
-displays.
+The little numbered badge on each card (01, 02, ...) is based on
+display **position**, not the database ID — IDs can become non-sequential
+after products are added and removed (IndexedDB's auto-increment
+keeps counting up), but the visible numbering always stays clean and
+sequential. Editing (weight/price) targets a product by its stable
+database ID, which never changes for that product.
 
-This is because opening an HTML file directly from disk (`file://` —
-the normal way to open a downloaded app like this) makes browsers
-treat any separately-referenced local image file as cross-origin for
-canvas purposes, which silently breaks PDF/PNG/JPG export with a
-security error. Base64 sidesteps that entirely, so export works with
-zero setup on any device, with or without a real web server.
+## Why product images are Blobs in IndexedDB (not base64 strings)
 
-To swap an image: replace the file under `assets/`, then regenerate
-its base64 with this Python snippet run from the project root, and
-paste the output into the matching entry in `js/product-images.js`:
-
-```python
-import base64
-with open("assets/products/01-cardamom.jpg", "rb") as f:
-    print(base64.b64encode(f.read()).decode("ascii"))
-```
-
-## Asset notes
-
-- **Logo** (`assets/brand/momi-logo.png`): the uploaded logo image with
-  its black background removed (via border-connected flood-fill, not a
-  simple color threshold — the dark maroon "MOMI MASALA" text in the
-  artwork is preserved, only the actual background became transparent).
-- **Shop banner** (`assets/brand/shop-banner.jpg`): cropped tightly to
-  just the signboard from the shop photo (no roof, shutter, or street),
-  then mildly upscaled and sharpened for a crisper look.
-- **Store info**: phone numbers, address, and proprietor name in
-  `js/products.js` (`BRAND` / `CONTACT`) were read directly off the
-  signboard photo. The PIN code wasn't legible in the photo, so it was
-  left out rather than guessed.
-- **Product photos**: reused from earlier in the project conversation,
-  since the latest round of instructions referenced new sequential
-  uploads that weren't actually attached. Mapped as: Cardamom, Clove,
-  Cinnamon (2 images), Nutmeg, Mace, Caraway Seeds/Black Cumin, White
-  Pepper, Black Pepper, Rose Petals — double-check this mapping against
-  your intended photos and swap any that don't match.
+Blobs are what IndexedDB is actually designed to store efficiently —
+base64 text would be ~33% larger and slower to encode/decode on every
+read. The seed images in `product-images.js` are base64 only because
+that's what a static JS file can hold; they get converted to Blobs
+once, during the first-launch migration, and from then on the database
+only ever deals in Blobs.
 
 ## Notes on the export rendering
 
-A couple of CSS patterns used in the live app don't rasterize correctly
-inside the `html2canvas` library used for Save/Share, so they're
-avoided (or given export-only overrides) in `css/style.css`:
+A couple of CSS patterns don't rasterize correctly inside the
+`html2canvas` library used for Save/Share, so they're avoided (or
+given export-only overrides) in `css/style.css`:
 
 - `backdrop-filter` (glass blur) → export-only solid backgrounds
   (scoped under `#exportHost`)
-- gradient text (`background-clip: text`) → avoided entirely in this
-  version's design (solid brand-colour text used instead)
 - `display: inline-flex` on the "RATE CARD" pill silently dropped its
-  text in exported output → changed to `display: flex; width:
-  fit-content` instead, which rasterizes correctly
+  text in exported output → uses `display: flex; width: fit-content`
+  instead, which rasterizes correctly
+- Remove buttons are hidden in the export copy (`#exportHost
+  .remove-btn { display: none; }`) so they never appear in a saved file
 
 None of this affects the live glass UI in the browser — only the
 exported file.

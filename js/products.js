@@ -1,86 +1,27 @@
 /* =========================================================
-   PRODUCT DATA — 9 products, exact order as specified.
+   DEFAULT_PRODUCTS — seed data only.
+   This array is used exactly once: the first time the app
+   opens and IndexedDB is empty, it gets migrated in as real
+   database records (see db-init.js). After that, IndexedDB
+   is the single source of truth — editing this array later
+   has no effect on an app that has already launched once.
+
    Cinnamon (id 3) is the one product with TWO images shown
    together in a single card — everything else has one.
-
-   Weight is stored in KG (not grams) per the latest spec.
-   `weightKg` is a plain number; `formatWeightKg()` turns it
-   into the display string (e.g. 0.025 -> "0.025 kg").
+   Weight is stored in KG; `formatWeightKg()` turns a number
+   into the display string ("0.025 kg", "1 kg").
    ========================================================= */
 
-const PRODUCTS = [
-  {
-    id: 1,
-    nameBn: "এলাচ",
-    nameEn: "Cardamom",
-    images: [PRODUCT_IMAGES.cardamom],
-    weightKg: 0.025,
-    price: 60,
-  },
-  {
-    id: 2,
-    nameBn: "লবঙ্গ",
-    nameEn: "Clove",
-    images: [PRODUCT_IMAGES.clove],
-    weightKg: 0.025,
-    price: 25,
-  },
-  {
-    id: 3,
-    nameBn: "দারুচিনি",
-    nameEn: "Cinnamon",
-    images: [PRODUCT_IMAGES.cinnamonA, PRODUCT_IMAGES.cinnamonB],
-    weightKg: 0.025,
-    price: 25,
-  },
-  {
-    id: 4,
-    nameBn: "জায়ফল",
-    nameEn: "Nutmeg",
-    images: [PRODUCT_IMAGES.nutmeg],
-    weightKg: 0.025,
-    price: 40,
-  },
-  {
-    id: 5,
-    nameBn: "জৈত্রী",
-    nameEn: "Mace",
-    images: [PRODUCT_IMAGES.mace],
-    weightKg: 0.025,
-    price: 50,
-  },
-  {
-    id: 6,
-    nameBn: "সা-জিরে",
-    nameEn: "Caraway Seeds / Black Cumin",
-    images: [PRODUCT_IMAGES.caraway],
-    weightKg: 0.1,
-    price: 25,
-  },
-  {
-    id: 7,
-    nameBn: "সাদা মরিচ",
-    nameEn: "White Pepper",
-    images: [PRODUCT_IMAGES.whitePepper],
-    weightKg: 0.1,
-    price: 60,
-  },
-  {
-    id: 8,
-    nameBn: "গোল মরিচ",
-    nameEn: "Black Pepper",
-    images: [PRODUCT_IMAGES.blackPepper],
-    weightKg: 0.1,
-    price: 50,
-  },
-  {
-    id: 9,
-    nameBn: "গোলাপ পাপড়ি",
-    nameEn: "Rose Petals",
-    images: [PRODUCT_IMAGES.rosePetals],
-    weightKg: 0.1,
-    price: 40,
-  },
+const DEFAULT_PRODUCTS = [
+  { id: 1, nameBn: "এলাচ", nameEn: "Cardamom", images: [PRODUCT_IMAGES.cardamom], weightKg: 0.025, price: 60, position: 1 },
+  { id: 2, nameBn: "লবঙ্গ", nameEn: "Clove", images: [PRODUCT_IMAGES.clove], weightKg: 0.025, price: 25, position: 2 },
+  { id: 3, nameBn: "দারুচিনি", nameEn: "Cinnamon", images: [PRODUCT_IMAGES.cinnamonA, PRODUCT_IMAGES.cinnamonB], weightKg: 0.025, price: 25, position: 3 },
+  { id: 4, nameBn: "জায়ফল", nameEn: "Nutmeg", images: [PRODUCT_IMAGES.nutmeg], weightKg: 0.025, price: 40, position: 4 },
+  { id: 5, nameBn: "জৈত্রী", nameEn: "Mace", images: [PRODUCT_IMAGES.mace], weightKg: 0.025, price: 50, position: 5 },
+  { id: 6, nameBn: "সা-জিরে", nameEn: "Caraway Seeds / Black Cumin", images: [PRODUCT_IMAGES.caraway], weightKg: 0.1, price: 25, position: 6 },
+  { id: 7, nameBn: "সাদা মরিচ", nameEn: "White Pepper", images: [PRODUCT_IMAGES.whitePepper], weightKg: 0.1, price: 60, position: 7 },
+  { id: 8, nameBn: "গোল মরিচ", nameEn: "Black Pepper", images: [PRODUCT_IMAGES.blackPepper], weightKg: 0.1, price: 50, position: 8 },
+  { id: 9, nameBn: "গোলাপ পাপড়ি", nameEn: "Rose Petals", images: [PRODUCT_IMAGES.rosePetals], weightKg: 0.1, price: 40, position: 9 },
 ];
 
 /* Turns a numeric kg value into the display string, matching the

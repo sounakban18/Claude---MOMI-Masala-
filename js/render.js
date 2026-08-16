@@ -1,18 +1,16 @@
 /* =========================================================
    RATE CARD RENDERER
-   Builds the entire rate card from PRODUCTS + BRAND + CONTACT.
-   Used identically by the live editor and the clean export,
-   so the exported file always matches what's on screen.
-
-   editable=true  -> weight/price become tappable fields
-   editable=false -> plain text only (used for export)
+   Builds the rate card from AppState.products + BRAND +
+   CONTACT. Used by both the live editor and the clean export
+   (buildRateCard(false) for export skips remove buttons and
+   tap-to-expand/edit wiring entirely, so none of that ever
+   ends up in a saved file).
    ========================================================= */
 
 function buildProductPhotos(product) {
   if (product.images.length === 1) {
     return `<div class="photo-frame single"><img src="${product.images[0]}" alt="${product.nameEn}" loading="eager"></div>`;
   }
-  // Cinnamon: two images shown together, side by side, inside one card
   return `
     <div class="photo-frame split">
       ${product.images.map((src) => `<img src="${src}" alt="${product.nameEn}" loading="eager">`).join("")}
@@ -20,13 +18,17 @@ function buildProductPhotos(product) {
   `;
 }
 
-function buildProductCard(product) {
+function buildProductCard(product, index, editable) {
   const card = document.createElement("div");
   card.className = "product-card";
+  card.dataset.id = product.id;
   card.innerHTML = `
     <div class="card-photo">
       ${buildProductPhotos(product)}
-      <span class="no-tag">${String(product.id).padStart(2, "0")}</span>
+      <span class="no-tag">${String(index + 1).padStart(2, "0")}</span>
+      ${editable ? `<button type="button" class="remove-btn" data-remove-id="${product.id}" aria-label="Remove product">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="12" x2="18" y2="12"/></svg>
+      </button>` : ""}
     </div>
     <div class="card-body">
       <div class="p-names">
@@ -35,7 +37,7 @@ function buildProductCard(product) {
       </div>
       <div class="p-meta">
         <span class="meta-weight">
-          <span class="field" data-id="${product.id}" data-type="weight">${formatWeightKg(product.weightKg)}</span>
+          <span class="field" data-id="${product.id}" data-type="weightKg">${formatWeightKg(product.weightKg)}</span>
         </span>
         <span class="meta-price">
           <span class="field" data-id="${product.id}" data-type="price">₹${product.price}</span>
@@ -89,7 +91,12 @@ function buildRateCard(editable) {
   `;
 
   const grid = page.querySelector("#productGrid");
-  PRODUCTS.forEach((p) => grid.appendChild(buildProductCard(p)));
+  const list = editable ? AppState.products : AppState.products;
+  list.forEach((p, i) => grid.appendChild(buildProductCard(p, i, editable)));
+  // an odd product count leaves a lone card on the last row — centre it
+  if (list.length % 2 === 1) {
+    grid.lastElementChild.classList.add("card-centered");
+  }
 
   if (editable) wireEditing(page);
   return page;

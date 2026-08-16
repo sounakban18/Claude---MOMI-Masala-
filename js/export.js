@@ -9,8 +9,8 @@
    ========================================================= */
 
 function validateAllBeforeExport() {
-  if (PRODUCTS.length !== 9) return false;
-  return PRODUCTS.every((p) => {
+  if (AppState.products.length === 0) return false;
+  return AppState.products.every((p) => {
     const priceOk = typeof p.price === "number" && p.price >= 0 && !isNaN(p.price);
     const weightOk = typeof p.weightKg === "number" && p.weightKg > 0 && !isNaN(p.weightKg);
     return priceOk && weightOk;

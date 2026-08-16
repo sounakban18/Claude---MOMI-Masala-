@@ -315,7 +315,7 @@ body {
   gap: 16px;
 }
 /* 9 products = odd count; centre the last card instead of a lopsided gap */
-.product-card:last-child:nth-child(odd) {
+.product-card.card-centered {
   grid-column: 1 / -1;
   width: calc(50% - 8px);
   margin: 0 auto;
@@ -480,8 +480,269 @@ body {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+.product-card { cursor: pointer; }
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(20, 8, 14, 0.6);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s ease, transform .12s ease;
+  z-index: 2;
+}
+.remove-btn:hover { background: rgba(178, 46, 46, 0.85); }
+.remove-btn:active { transform: scale(0.9); }
+#exportHost .remove-btn { display: none; }
+
+/* ================================================================
+   FLOATING ADD-PRODUCT BUTTON
+   ================================================================ */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(79,17,41,0.38);
+  z-index: 90;
+  transition: transform .18s cubic-bezier(.2,.8,.3,1), box-shadow .18s ease;
+}
+.fab:active { transform: scale(0.92); box-shadow: 0 6px 16px rgba(79,17,41,0.3); }
+
+/* ================================================================
+   SHEET BACKDROP + BOTTOM SHEETS (expand / add product / backup)
+   ================================================================ */
+body.sheet-open { overflow: hidden; }
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 8, 14, 0.45);
+  backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+  z-index: 210;
+}
+body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
+
+.bottom-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--cream);
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -12px 40px rgba(79,17,41,0.25);
+  padding: 10px 20px calc(22px + env(safe-area-inset-bottom));
+  max-height: 88vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform .28s cubic-bezier(.2,.8,.3,1);
+  z-index: 220;
+}
+.bottom-sheet.open { transform: translateY(0); }
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(122,31,61,0.25);
+  margin: 8px auto 4px;
+}
+.sheet-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(122,31,61,0.08);
+  border: none;
+  color: var(--maroon-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.sheet-title {
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--maroon-deep);
+  margin: 6px 0 16px;
+  text-align: center;
+}
+
+/* ---------- expand sheet ---------- */
+.expand-images {
+  display: flex;
+  gap: 8px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: #f2ead7;
+}
+.expand-images img { width: 100%; max-height: 320px; object-fit: contain; background: #fff; flex: 1 1 0; }
+.expand-info { text-align: center; padding-bottom: 6px; }
+.expand-bn { display: block; font-family: 'Noto Sans Bengali', sans-serif; font-weight: 700; font-size: 22px; color: var(--maroon-deep); }
+.expand-en { display: block; margin-top: 2px; font-family: 'Poppins', sans-serif; font-size: 13px; color: var(--muted); }
+.expand-meta { display: flex; justify-content: center; gap: 26px; margin-top: 16px; font-family: 'Poppins', sans-serif; font-size: 13px; color: var(--muted); }
+.expand-meta b { display: block; font-size: 18px; color: var(--maroon-deep); margin-top: 2px; }
+
+/* ---------- add product sheet ---------- */
+.image-picker {
+  width: 100%;
+  height: 150px;
+  border-radius: 16px;
+  border: 1.5px dashed rgba(122,31,61,0.35);
+  background-color: rgba(122,31,61,0.04);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--muted);
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: border-color .15s ease;
+}
+.image-picker.has-image { color: transparent; border-style: solid; border-color: rgba(122,31,61,0.5); }
+.image-picker.has-image svg, .image-picker.has-image span { opacity: 0; }
+.image-picker:active { border-color: var(--maroon); }
+
+.field-label {
+  display: block;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: 0 0 5px 2px;
+}
+.text-input {
+  width: 100%;
+  border: 1.5px solid rgba(122,31,61,0.18);
+  background: #fff;
+  border-radius: 12px;
+  padding: 11px 13px;
+  font-family: 'Noto Sans Bengali', 'Poppins', sans-serif;
+  font-size: 14.5px;
+  color: var(--ink);
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.text-input:focus { border-color: var(--maroon); box-shadow: 0 0 0 3px rgba(122,31,61,0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.sheet-primary-btn, .sheet-secondary-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 14px 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14.5px;
+  border: none;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.sheet-primary-btn { background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%); color: #fff; box-shadow: 0 8px 20px rgba(79,17,41,0.28); }
+.sheet-secondary-btn { background: rgba(122,31,61,0.08); color: var(--maroon-deep); }
+.sheet-primary-btn:active, .sheet-secondary-btn:active { transform: scale(0.97); }
+.sheet-primary-btn:disabled { opacity: .6; }
+
+/* ---------- backup sheet ---------- */
+.backup-info {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(122,31,61,0.12);
+  padding: 4px 14px;
+  margin-bottom: 16px;
+}
+.backup-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(122,31,61,0.08);
+}
+.backup-info-row:last-child { border-bottom: none; }
+.backup-info-row b { color: var(--maroon-deep); font-size: 13.5px; }
+.backup-note { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 12px; text-align: center; }
+
+/* ---------- confirm dialog ---------- */
+.confirm-modal {
+  position: fixed;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) scale(0.94);
+  width: calc(100% - 56px);
+  max-width: 340px;
+  background: var(--cream);
+  border-radius: 22px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 20px 50px rgba(79,17,41,0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.3,1);
+  z-index: 230;
+  text-align: center;
+}
+.confirm-modal.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+.confirm-title { font-family: 'Baloo Da 2', sans-serif; font-size: 17px; color: var(--maroon-deep); margin: 0 0 8px; }
+.confirm-message { font-family: 'Noto Sans Bengali', sans-serif; font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0 0 18px; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions button {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 11px 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform .12s ease;
+}
+.confirm-actions button:active { transform: scale(0.96); }
+.confirm-cancel { background: rgba(122,31,61,0.08); color: var(--maroon-deep); }
+.confirm-ok { background: var(--maroon); color: #fff; }
+.confirm-ok.danger { background: linear-gradient(135deg, #C0392B, #922020); }
+
 /* off-screen render target used only for export — always rendered
    without backdrop-filter/gradient-clip, since those don't rasterize
    reliably in html2canvas; see export.js and the overrides below */
 #exportHost { position: absolute; left: -99999px; top: 0; width: 720px; }
 #exportHost .no-tag { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* icon-only header button (Data / backup) */
+.icon-btn { padding: 9px; }
