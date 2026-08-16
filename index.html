@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>মমি মসলা — প্রোডাক্ট ব্রোশিওর</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+<div class="bg-blob blob-3"></div>
+
+<!-- App top bar: glass, sticky, holds Share + Save -->
+<header class="app-bar">
+  <div class="app-bar-inner">
+    <div class="app-id">
+      <span class="app-id-title">মমি মসলা</span>
+      <span class="app-id-sub">Product Brochure Editor</span>
+    </div>
+
+    <div class="header-controls">
+      <button class="glass-btn share-btn" id="shareBtn" aria-label="Share">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+        <span>Share</span>
+      </button>
+
+      <div class="save-menu" id="saveMenu">
+        <button class="glass-btn save-btn" id="saveBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Save</span>
+          <svg class="chev" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="save-dropdown" id="saveDropdown">
+          <button class="save-option" id="optPdf">
+            <span class="opt-ic pdf">PDF</span>
+            <span class="opt-text"><b>Save as PDF</b><small>Print-ready document</small></span>
+          </button>
+          <button class="save-option" id="optPng">
+            <span class="opt-ic png">PNG</span>
+            <span class="opt-text"><b>Save as PNG</b><small>High-quality image</small></span>
+          </button>
+          <button class="save-option" id="optJpg">
+            <span class="opt-ic jpg">JPG</span>
+            <span class="opt-text"><b>Save as JPG</b><small>Shareable image</small></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Slim shop-signage strip — subtle authenticity touch, cropped to just the signboard -->
+<div class="signage-strip">
+  <div class="signage-strip-inner">
+    <img src="assets/brand/shop-signboard.jpg" alt="MOMI MASALA shop signboard">
+    <span class="signage-text">আসল দোকান থেকে সরাসরি • Est. local shop</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="stage-outer">
+    <div id="stage">
+      <div id="editorBrochure"></div>
+    </div>
+    <div class="hint">শুধু <b>ওজন</b> ও <b>দাম</b> বদলানো যাবে — ট্যাপ করুন যেকোনো মানে</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- off-screen render target used ONLY for export -->
+<div id="exportHost"></div>
+
+<script src="js/product-images.js"></script>
+<script src="js/products.js"></script>
+<script src="js/render.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/html2canvas.min.js"></script>
+<script src="js/jspdf.min.js"></script>
+<script src="js/export.js"></script>
+</body>
+</html>

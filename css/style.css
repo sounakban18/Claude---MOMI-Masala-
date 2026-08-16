@@ -1,0 +1,615 @@
+:root {
+  --maroon: #7A1F3D;
+  --maroon-deep: #4F1129;
+  --maroon-soft: #9C4463;
+  --gold: #C9A227;
+  --gold-soft: #E4C563;
+  --green: #2F9E6E;
+  --green-deep: #1F7A54;
+  --ink: #241B22;
+  --muted: #8A7C82;
+
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 10px 34px rgba(79, 17, 41, 0.14);
+  --radius-lg: 28px;
+  --radius-md: 20px;
+  --radius-sm: 14px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: linear-gradient(180deg, #F6F1EA 0%, #EFE7DC 45%, #EAE0D2 100%);
+  font-family: 'Noto Sans Bengali', 'Poppins', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ---------- Soft blurred colour blobs behind the glass (Apple-style depth) ---------- */
+.bg-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: .35;
+}
+.blob-1 { width: 380px; height: 380px; top: -120px; left: -100px; background: var(--maroon-soft); }
+.blob-2 { width: 340px; height: 340px; top: 260px; right: -140px; background: var(--gold-soft); opacity: .22; }
+.blob-3 { width: 320px; height: 320px; bottom: -100px; left: 20%; background: var(--green); opacity: .16; }
+.bg-blob.blob-1 { opacity: .24; }
+
+/* ================================================================
+   APP BAR — sticky glass header, holds the Save dropdown
+   ================================================================ */
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  background: rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(79, 17, 41, 0.06);
+}
+.app-bar-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.app-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; overflow: hidden; }
+.app-id-title {
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--maroon-deep);
+  white-space: nowrap;
+}
+.app-id-sub {
+  font-family: 'Poppins', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: .2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Header controls: Share + Save ---------- */
+.header-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+
+.glass-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  color: var(--maroon-deep);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(79, 17, 41, 0.08);
+  transition: transform .15s ease, background .15s ease;
+}
+.glass-btn:active { transform: scale(0.96); background: rgba(255,255,255,0.75); }
+.share-btn span { display: none; }
+@media (min-width: 400px) {
+  .share-btn span { display: inline; }
+}
+
+.save-btn .chev { transition: transform .2s ease; opacity: .7; }
+.save-menu.open .save-btn .chev { transform: rotate(180deg); }
+
+.save-menu { position: relative; }
+
+.save-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  background: var(--glass-strong);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(79, 17, 41, 0.22);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity .16s ease, transform .16s ease;
+  z-index: 200;
+}
+.save-menu.open .save-dropdown {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.save-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 13px;
+  padding: 9px 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s ease;
+  font-family: 'Poppins', sans-serif;
+}
+.save-option:hover, .save-option:active { background: rgba(122, 31, 61, 0.08); }
+
+.opt-ic {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  color: #fff;
+}
+.opt-ic.pdf { background: linear-gradient(135deg, #E24C4C, #B92E2E); }
+.opt-ic.jpg { background: linear-gradient(135deg, #4C8EE2, #2E5FB9); }
+.opt-ic.png { background: linear-gradient(135deg, #34B380, #1F8E63); }
+
+.opt-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.opt-text b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.opt-text small { font-size: 10.5px; color: var(--muted); font-weight: 500; }
+
+/* ================================================================
+   PAGE CONTENT
+   ================================================================ */
+.page {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 12px 48px;
+}
+
+.stage-outer { width: 100%; max-width: 760px; overflow-x: hidden; }
+#stage { position: relative; overflow: hidden; }
+#editorBrochure { width: 720px; }
+
+.hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  margin: 14px 0 4px;
+  font-family: 'Poppins', sans-serif;
+}
+.hint b { color: var(--maroon-deep); }
+
+/* ================================================================
+   THE BROCHURE — glass card
+   ================================================================ */
+.brochure {
+  position: relative;
+  width: 720px;
+  background: var(--glass);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 30px 32px 26px;
+  box-shadow: var(--glass-shadow);
+}
+
+/* ---------- Header ---------- */
+.header { position: relative; z-index: 1; }
+.header-top {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.logo-badge {
+  flex: 0 0 auto;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: var(--glass-strong);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 14px rgba(79,17,41,0.14), inset 0 0 0 3px rgba(201,162,39,0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.logo-badge .chili { font-size: 21px; line-height: 1; margin-bottom: 2px; }
+.logo-badge .word1 {
+  display: block;
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: 12.5px;
+  color: var(--maroon-deep);
+  letter-spacing: .5px;
+}
+.logo-badge .word2 {
+  display: block;
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 700;
+  font-size: 9px;
+  color: var(--maroon);
+  letter-spacing: .6px;
+}
+
+.title-block { flex: 1 1 auto; text-align: left; }
+.brand-title {
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: .5px;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.brand-sub {
+  margin-top: 5px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--gold);
+}
+.brand-tagline {
+  margin-top: 5px;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.brochure-pill {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 auto 12px;
+  width: fit-content;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  padding: 9px 28px;
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(79,17,41,0.22);
+}
+.brochure-pill .bp-bn {
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+.brochure-pill .bp-dot { color: var(--gold-soft); font-size: 12px; }
+.brochure-pill .bp-en {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--gold-soft);
+}
+
+.subheading {
+  text-align: center;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--maroon-deep);
+  margin-bottom: 16px;
+}
+
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(122,31,61,0.35) 15%, rgba(122,31,61,0.35) 85%, transparent);
+  margin-bottom: 22px;
+}
+
+/* ---------- Product grid: 2 columns x 5 rows ---------- */
+.grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+/* 9 products = an odd count; centre the last card on its own row
+   instead of leaving a lopsided empty gap beside it */
+.product-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  width: calc(50% - 8px);
+  margin: 0 auto;
+}
+
+.product-card {
+  position: relative;
+  background: var(--glass-strong);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 14px 14px 14px;
+  box-shadow: 0 6px 18px rgba(79,17,41,0.08);
+  transition: transform .15s ease;
+}
+
+.no-badge {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  color: #fff;
+  border: 2px solid #fff;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 3px 8px rgba(79,17,41,0.3);
+}
+
+.photo-frame {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: #f2ead7;
+  margin-bottom: 11px;
+  box-shadow: inset 0 0 0 1px rgba(79,17,41,0.05);
+}
+.photo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.p-names { margin-bottom: 11px; min-width: 0; }
+.p-bn {
+  display: block;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-weight: 700;
+  font-size: 17.5px;
+  color: var(--maroon-deep);
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+.p-en {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Poppins', sans-serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.p-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.meta-pill {
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  backdrop-filter: blur(6px);
+}
+.meta-pill.weight { background: rgba(47, 158, 110, 0.14); border: 1px solid rgba(47,158,110,0.22); }
+.meta-pill.price { background: rgba(201, 162, 39, 0.16); border: 1px solid rgba(201,162,39,0.28); }
+.meta-label {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 7.8px;
+  letter-spacing: .3px;
+  color: var(--green-deep);
+  white-space: nowrap;
+}
+.meta-pill.price .meta-label { color: #9C7A10; }
+
+.field {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 15.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.meta-pill.weight .field { color: var(--green-deep); }
+.meta-pill.price .field { color: var(--maroon-deep); }
+
+.editable .field {
+  cursor: pointer;
+  border-bottom: 1.5px dashed rgba(122,31,61,0.4);
+}
+.editable .field:active, .editable .field.editing {
+  border-bottom: 1.5px solid var(--maroon);
+}
+.field-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: inherit;
+  padding: 0;
+}
+.field.invalid { animation: shake .25s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* ---------- Footer ---------- */
+.footer-tagline {
+  text-align: center;
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--maroon-deep);
+  margin: 24px 0 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-bar {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-deep) 100%);
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 8px 20px rgba(31,122,84,0.25);
+}
+.footer-bar .fb-dot { opacity: .6; }
+.footer-bar .fb-addr { font-family: 'Noto Sans Bengali', sans-serif; }
+
+.proprietor {
+  text-align: center;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 11px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ================================================================
+   SIGNAGE STRIP — tight crop of the real shop signboard, kept small
+   and subtle beneath the app header (not part of the exported card)
+   ================================================================ */
+.signage-strip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 12px 12px 0;
+}
+.signage-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 480px;
+  width: 100%;
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 7px 14px 7px 7px;
+  box-shadow: 0 4px 16px rgba(79,17,41,0.08);
+}
+.signage-strip-inner img {
+  height: 40px;
+  width: 76px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,0.7);
+}
+.signage-text {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(36, 27, 34, 0.92);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s;
+  max-width: 88%;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+.toast.show { opacity: 1; }
+
+/* off-screen render target used only for export — always rendered as
+   a solid (non-glass) card since backdrop-filter doesn't rasterize
+   reliably; see export.js */
+#exportHost { position: absolute; left: -99999px; top: 0; width: 720px; }
+#exportHost .brochure {
+  background: #FBF3E2;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#exportHost .product-card {
+  background: #FFFDF7;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#exportHost .logo-badge { background: #FBF3E2; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#exportHost .meta-pill { backdrop-filter: none; -webkit-backdrop-filter: none; }
+#exportHost .brand-title {
+  /* background-clip:text doesn't rasterize in html2canvas — fall back
+     to a plain solid colour for the exported copy only. */
+  background: none;
+  -webkit-text-fill-color: var(--maroon-deep);
+  color: var(--maroon-deep);
+}
