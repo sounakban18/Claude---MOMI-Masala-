@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>মমি মসলা — প্রোডাক্ট ব্রোশিওর</title>
+<title>মমি মসলা — রেট কার্ড এডিটর</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
   <div class="app-bar-inner">
     <div class="app-id">
       <span class="app-id-title">মমি মসলা</span>
-      <span class="app-id-sub">Product Brochure Editor</span>
+      <span class="app-id-sub">Rate Card Editor</span>
     </div>
 
     <div class="header-controls">
@@ -54,19 +54,13 @@
   </div>
 </header>
 
-<!-- Slim shop-signage strip — subtle authenticity touch, cropped to just the signboard -->
-<div class="signage-strip">
-  <div class="signage-strip-inner">
-    <img src="assets/brand/shop-signboard.jpg" alt="MOMI MASALA shop signboard">
-    <span class="signage-text">আসল দোকান থেকে সরাসরি • Est. local shop</span>
-  </div>
-</div>
+<!-- Shop signboard now lives inside the rate card itself (see render.js) -->
 
 <div class="page">
 
   <div class="stage-outer">
     <div id="stage">
-      <div id="editorBrochure"></div>
+      <div id="editorCard"></div>
     </div>
     <div class="hint">শুধু <b>ওজন</b> ও <b>দাম</b> বদলানো যাবে — ট্যাপ করুন যেকোনো মানে</div>
   </div>

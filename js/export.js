@@ -12,7 +12,7 @@ function validateAllBeforeExport() {
   if (PRODUCTS.length !== 9) return false;
   return PRODUCTS.every((p) => {
     const priceOk = typeof p.price === "number" && p.price >= 0 && !isNaN(p.price);
-    const weightOk = /^\d+(\.\d+)?[a-zA-Zঀ-\u09FF]+$/.test(p.weight);
+    const weightOk = typeof p.weightKg === "number" && p.weightKg > 0 && !isNaN(p.weightKg);
     return priceOk && weightOk;
   });
 }
@@ -36,7 +36,7 @@ function waitForImages(root) {
 async function renderExportCanvas(scale = 2.5) {
   const host = document.getElementById("exportHost");
   host.innerHTML = "";
-  const brochure = buildBrochure(false); // clean, non-editable render from latest data
+  const brochure = buildRateCard(false); // clean, non-editable render from latest data
   host.appendChild(brochure);
 
   await waitForImages(brochure);
@@ -98,7 +98,7 @@ async function exportImage(type) {
   const quality = type === "png" ? undefined : 0.95;
   const blob = await canvasToBlob(canvas, mime, quality);
   if (!blob) throw new Error("canvas.toBlob returned null");
-  await deliverBlob(blob, mime, `momi-masala-brochure.${type}`, "MOMI MASALA Brochure");
+  await deliverBlob(blob, mime, `momi-masala-ratecard.${type}`, "MOMI MASALA Rate Card");
 }
 
 /* ---------- PDF ---------- */
@@ -120,21 +120,21 @@ async function exportPdf() {
   doc.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm);
 
   const blob = doc.output("blob");
-  await deliverBlob(blob, "application/pdf", "momi-masala-brochure.pdf", "MOMI MASALA Brochure");
+  await deliverBlob(blob, "application/pdf", "momi-masala-ratecard.pdf", "MOMI MASALA Rate Card");
 }
 
 /* ---------- Share ---------- */
-async function shareBrochure() {
+async function shareRateCard() {
   try {
     const canvas = await renderExportCanvas(2);
     const blob = await canvasToBlob(canvas, "image/jpeg", 0.92);
     if (!blob) throw new Error("no blob");
 
-    const file = new File([blob], "momi-masala-brochure.jpg", { type: "image/jpeg" });
+    const file = new File([blob], "momi-masala-ratecard.jpg", { type: "image/jpeg" });
     const shareData = {
       files: [file],
       title: "MOMI MASALA",
-      text: "MOMI MASALA — Product Brochure",
+      text: "MOMI MASALA — Product Rate Card",
     };
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const original = label.textContent;
     label.textContent = "...";
     try {
-      await shareBrochure();
+      await shareRateCard();
     } finally {
       label.textContent = original;
       shareBtn.style.pointerEvents = "";

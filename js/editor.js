@@ -1,8 +1,8 @@
 /* =========================================================
    EDITING BEHAVIOUR
-   Only weight and price are interactive. Product names,
-   numbering, photos, branding and contact details are never
-   wired up here, so they can never be edited.
+   Only weight (in KG) and price are interactive. Product
+   names, numbering, photos, branding and contact details are
+   never wired up here, so they can never be edited.
    ========================================================= */
 
 function wireEditing(rootEl) {
@@ -17,14 +17,15 @@ function activateField(fieldEl) {
   const id = parseInt(fieldEl.dataset.id, 10);
   const type = fieldEl.dataset.type;
   const product = PRODUCTS.find((p) => p.id === id);
-  const currentValue = type === "price" ? String(product.price) : product.weight;
+  const currentValue = type === "price" ? String(product.price) : String(product.weightKg);
 
   fieldEl.classList.add("editing");
+  fieldEl.parentElement.classList.add("field-editing");
   fieldEl.innerHTML = "";
   const input = document.createElement("input");
   input.className = "field-input";
   input.value = currentValue;
-  input.inputMode = type === "price" ? "decimal" : "text";
+  input.inputMode = "decimal";
   fieldEl.appendChild(input);
   input.focus();
   input.select();
@@ -38,12 +39,12 @@ function activateField(fieldEl) {
 }
 
 function saveField(fieldEl, product, type, rawValue, fallback) {
-  const value = rawValue.trim();
+  const value = rawValue.trim().replace(/kg/i, "").trim();
+  const num = parseFloat(value.replace(/[₹,]/g, ""));
   let valid = true;
   let display;
 
   if (type === "price") {
-    const num = parseFloat(value.replace(/[₹,]/g, ""));
     if (value === "" || isNaN(num) || num < 0) {
       valid = false;
       display = `₹${fallback}`;
@@ -52,19 +53,20 @@ function saveField(fieldEl, product, type, rawValue, fallback) {
       display = `₹${product.price}`;
     }
   } else {
-    const match = value.match(/^(\d+(\.\d+)?)\s*([a-zA-Zঀ-\u09FF]*)$/);
-    if (value === "" || !match) {
+    if (value === "" || isNaN(num) || num <= 0) {
       valid = false;
-      display = fallback;
+      display = formatWeightKg(fallback);
     } else {
-      const unit = match[3] || "gm";
-      product.weight = `${match[1]}${unit}`;
-      display = product.weight;
+      product.weightKg = num;
+      display = formatWeightKg(num);
     }
   }
 
   fieldEl.classList.remove("editing");
+  fieldEl.parentElement.classList.remove("field-editing");
   fieldEl.textContent = display;
+  fieldEl.classList.add("just-saved");
+  setTimeout(() => fieldEl.classList.remove("just-saved"), 420);
 
   if (!valid) {
     fieldEl.classList.add("invalid");
@@ -72,41 +74,41 @@ function saveField(fieldEl, product, type, rawValue, fallback) {
     showToast(
       type === "price"
         ? "দাম অবশ্যই একটি বৈধ সংখ্যা হতে হবে (০ বা তার বেশি)"
-        : "ওজন অবশ্যই সংখ্যা দিয়ে শুরু হতে হবে, যেমন 100gm"
+        : "ওজন অবশ্যই ০ এর বেশি একটি সংখ্যা হতে হবে (কেজিতে), যেমন 0.025"
     );
   }
 }
 
 /* =========================================================
    RESPONSIVE SCALING
-   The brochure is built at one fixed, generous design width
+   The rate card is built at one fixed, generous design width
    so product photos and names always have enough room. On
    narrow phones we visually scale the whole thing down with
    a CSS transform instead of reflowing its typography.
    ========================================================= */
 
-const BROCHURE_WIDTH = 720;
+const CARD_WIDTH = 720;
 
 function fitToViewport() {
   const stage = document.getElementById("stage");
-  const wrapper = document.getElementById("editorBrochure");
+  const wrapper = document.getElementById("editorCard");
   if (!stage || !wrapper) return;
 
   const available = stage.parentElement.clientWidth;
-  const scale = Math.min(1, available / BROCHURE_WIDTH);
+  const scale = Math.min(1, available / CARD_WIDTH);
   const naturalHeight = wrapper.offsetHeight;
 
   wrapper.style.transform = `scale(${scale})`;
   wrapper.style.transformOrigin = "top left";
 
-  stage.style.width = `${BROCHURE_WIDTH * scale}px`;
+  stage.style.width = `${CARD_WIDTH * scale}px`;
   stage.style.height = `${naturalHeight * scale}px`;
   stage.style.margin = "0 auto";
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const editorHost = document.getElementById("editorBrochure");
-  editorHost.appendChild(buildBrochure(true));
+  const editorHost = document.getElementById("editorCard");
+  editorHost.appendChild(buildRateCard(true));
 
   fitToViewport();
   window.addEventListener("resize", fitToViewport);
@@ -114,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(fitToViewport);
   }
-  // images loading can change the natural height — refit once they're in
   const imgs = editorHost.querySelectorAll("img");
   let remaining = imgs.length;
   if (remaining === 0) fitToViewport();
