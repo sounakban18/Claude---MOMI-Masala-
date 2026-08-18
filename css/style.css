@@ -400,13 +400,18 @@ body {
 .meta-weight .field { color: #7A5A12; }
 .meta-price .field { color: #fff; font-weight: 800; }
 
-.editable .field { cursor: pointer; }
+.editable .field { cursor: pointer; touch-action: manipulation; }
 .editable .meta-weight, .editable .meta-price {
   border: 1.5px dashed transparent;
-  transition: border-color .15s ease, transform .1s ease;
+  transition: border-color .15s ease, transform .1s ease, box-shadow .15s ease;
+  touch-action: manipulation;
 }
-.editable .meta-weight:hover { border-color: rgba(122,31,61,0.3); }
-.editable .meta-price:hover { border-color: rgba(228,197,99,0.6); }
+/* Always-visible tap affordance (not hover-only, since touch devices have
+   no hover) so it's immediately obvious these two values are editable. */
+.editable .meta-weight { border-color: rgba(122, 31, 61, 0.28); }
+.editable .meta-price { border-color: rgba(255, 255, 255, 0.4); }
+.editable .meta-weight:hover { border-color: rgba(122,31,61,0.5); }
+.editable .meta-price:hover { border-color: rgba(228,197,99,0.85); }
 .editable .meta-weight:has(.editing), .editable .meta-price:has(.editing),
 .editable .meta-weight.field-editing, .editable .meta-price.field-editing {
   border-color: var(--maroon);
@@ -592,17 +597,32 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   text-align: center;
 }
 
-/* ---------- expand sheet ---------- */
+/* ---------- expand sheet: image with an overlapping glass info panel,
+   for a bit more depth/elevation in the expanded state ---------- */
 .expand-images {
   display: flex;
   gap: 8px;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: -30px;
   background: #f2ead7;
+  position: relative;
+  z-index: 1;
 }
 .expand-images img { width: 100%; max-height: 320px; object-fit: contain; background: #fff; flex: 1 1 0; }
-.expand-info { text-align: center; padding-bottom: 6px; }
+.expand-info {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin: 0 6px;
+  padding: 18px 16px 14px;
+  background: var(--glass-strong);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(79,17,41,0.16);
+}
 .expand-bn { display: block; font-family: 'Noto Sans Bengali', sans-serif; font-weight: 700; font-size: 22px; color: var(--maroon-deep); }
 .expand-en { display: block; margin-top: 2px; font-family: 'Poppins', sans-serif; font-size: 13px; color: var(--muted); }
 .expand-meta { display: flex; justify-content: center; gap: 26px; margin-top: 16px; font-family: 'Poppins', sans-serif; font-size: 13px; color: var(--muted); }
@@ -746,3 +766,20 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
 
 /* icon-only header button (Data / backup) */
 .icon-btn { padding: 9px; }
+
+/* ---------- global touch responsiveness ---------- */
+.product-card, .fab, .glass-btn, .save-option, .sheet-primary-btn,
+.sheet-secondary-btn, .confirm-actions button, .remove-btn, .sheet-close,
+.image-picker, .field {
+  touch-action: manipulation;
+}
+
+/* ---------- respect reduced-motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

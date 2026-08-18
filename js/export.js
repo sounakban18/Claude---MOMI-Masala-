@@ -1,11 +1,9 @@
 /* =========================================================
-   EXPORT & SHARE
-   Builds a fresh, non-editable copy of the brochure from the
-   live PRODUCTS data, rasterizes it at high resolution, and
-   either downloads it (PDF/PNG/JPG) or hands it to the native
-   share sheet. Fully independent of the editor's DOM, so the
-   exported/shared file never contains input borders, cursors,
-   or the app's own header/controls.
+   EXPORT.JS
+   Generates the PDF/PNG/JPG from the live AppState and hands
+   the resulting file to FilePipeline.deliver() for the actual
+   cross-platform download/share handling (see
+   js/utils/file-pipeline.js for the mobile-download fix).
    ========================================================= */
 
 function validateAllBeforeExport() {
@@ -36,16 +34,16 @@ function waitForImages(root) {
 async function renderExportCanvas(scale = 2.5) {
   const host = document.getElementById("exportHost");
   host.innerHTML = "";
-  const brochure = buildRateCard(false); // clean, non-editable render from latest data
-  host.appendChild(brochure);
+  const card = buildRateCard(false); // clean, non-editable render from latest AppState
+  host.appendChild(card);
 
-  await waitForImages(brochure);
+  await waitForImages(card);
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch (e) {}
   }
   await new Promise((r) => setTimeout(r, 60));
 
-  const canvas = await html2canvas(brochure, {
+  const canvas = await html2canvas(card, {
     scale,
     backgroundColor: "#FBF3E2",
     useCORS: true,
@@ -58,56 +56,23 @@ function canvasToBlob(canvas, mime, quality) {
   return new Promise((resolve) => canvas.toBlob(resolve, mime, quality));
 }
 
-function isIOS() {
-  return (
-    /iP(hone|od|ad)/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
-  );
-}
-
-/* Shared delivery path for a finished file: try the iOS share sheet
-   first (since Mobile Safari often just opens blobs instead of
-   downloading them), otherwise do a normal anchor download. */
-async function deliverBlob(blob, mime, filename, shareTitle) {
-  if (isIOS() && navigator.canShare) {
-    const file = new File([blob], filename, { type: mime });
-    if (navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: shareTitle });
-        return;
-      } catch (e) { /* user cancelled — fall through to download */ }
-    }
-  }
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-
-  if (isIOS()) setTimeout(() => window.open(url, "_blank"), 150);
-  setTimeout(() => URL.revokeObjectURL(url), 8000);
-}
-
 /* ---------- PNG / JPG ---------- */
-async function exportImage(type) {
+async function generateImageBlob(type) {
   const canvas = await renderExportCanvas(2.5);
   const mime = type === "png" ? "image/png" : "image/jpeg";
   const quality = type === "png" ? undefined : 0.95;
   const blob = await canvasToBlob(canvas, mime, quality);
-  if (!blob) throw new Error("canvas.toBlob returned null");
-  await deliverBlob(blob, mime, `momi-masala-ratecard.${type}`, "MOMI MASALA Rate Card");
+  FilePipeline.validateBlob(blob, type.toUpperCase());
+  return { blob, mime };
 }
 
 /* ---------- PDF ---------- */
-async function exportPdf() {
+async function generatePdfBlob() {
   const canvas = await renderExportCanvas(2.5);
   const imgData = canvas.toDataURL("image/jpeg", 0.95);
 
   const { jsPDF } = window.jspdf;
-  // Match the PDF page to the brochure's own aspect ratio so nothing
+  // Match the PDF page to the rate card's own aspect ratio so nothing
   // gets letterboxed, cropped, or stretched.
   const widthMm = 210; // A4 width, portrait
   const heightMm = (canvas.height / canvas.width) * widthMm;
@@ -120,64 +85,62 @@ async function exportPdf() {
   doc.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm);
 
   const blob = doc.output("blob");
-  await deliverBlob(blob, "application/pdf", "momi-masala-ratecard.pdf", "MOMI MASALA Rate Card");
+  FilePipeline.validateBlob(blob, "PDF");
+  return { blob, mime: "application/pdf" };
 }
 
-/* ---------- Share ---------- */
-async function shareRateCard() {
-  try {
-    const canvas = await renderExportCanvas(2);
-    const blob = await canvasToBlob(canvas, "image/jpeg", 0.92);
-    if (!blob) throw new Error("no blob");
-
-    const file = new File([blob], "momi-masala-ratecard.jpg", { type: "image/jpeg" });
-    const shareData = {
-      files: [file],
-      title: "MOMI MASALA",
-      text: "MOMI MASALA — Product Rate Card",
-    };
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share(shareData);
-      return;
-    }
-    if (navigator.share) {
-      // some browsers support share() for text but not files
-      await navigator.share({ title: shareData.title, text: shareData.text });
-      showToast("এই ব্রাউজারে ছবি শেয়ার সমর্থিত নয় — Save করে ছবিটি ম্যানুয়ালি শেয়ার করুন");
-      return;
-    }
-    throw new Error("share unsupported");
-  } catch (err) {
-    if (err && err.name === "AbortError") return; // user cancelled share sheet
-    console.error(err);
-    showToast("শেয়ারিং সমর্থিত নয় এই ব্রাউজারে — এর বদলে Save ব্যবহার করুন");
+/* ---------- honest, method-aware feedback ---------- */
+function toastForMethod(method) {
+  switch (method) {
+    case "share": return "শেয়ার করা হয়েছে ✓";
+    case "share-text-only": return "শেয়ার করা হয়েছে (ছবি ছাড়া) — এই ব্রাউজারে ফাইল শেয়ার সমর্থিত নয়";
+    case "share-cancelled": return null; // user backed out — no message needed
+    case "download": return "ডাউনলোড শুরু হয়েছে ✓";
+    case "newtab": return "নতুন ট্যাবে খোলা হয়েছে — ছবিতে চেপে ধরে সেভ করুন";
+    case "newtab-datauri": return "নতুন ট্যাবে খোলা হয়েছে — সেভ করতে চেপে ধরুন";
+    default: return "সম্পন্ন হয়েছে ✓";
   }
 }
 
-/* ---------- Wiring: dropdown + buttons ---------- */
+/* ---------- Wiring: Save dropdown ---------- */
+let exportInProgress = false;
+
 async function handleSaveOption(type, triggerEl) {
+  if (exportInProgress) return; // prevent overlapping export requests
   if (!validateAllBeforeExport()) {
     showToast("কিছু দাম/ওজন খালি বা ভুল আছে — এক্সপোর্টের আগে ঠিক করুন");
     return;
   }
   closeSaveMenu();
+  exportInProgress = true;
+  setAllSaveOptionsDisabled(true);
 
-  const original = triggerEl.querySelector("b").textContent;
-  triggerEl.querySelector("b").textContent = "তৈরি হচ্ছে...";
-  triggerEl.style.pointerEvents = "none";
+  const labelEl = triggerEl.querySelector("b");
+  const original = labelEl.textContent;
+  labelEl.textContent = "তৈরি হচ্ছে...";
+  showToast("রেট কার্ড তৈরি হচ্ছে...", 60000);
 
   try {
-    if (type === "pdf") await exportPdf();
-    else await exportImage(type);
-    showToast("ব্রোশিওর সেভ হয়েছে ✓");
+    const { blob, mime } = type === "pdf" ? await generatePdfBlob() : await generateImageBlob(type);
+    const filename = `momi-masala-ratecard.${type}`;
+    const result = await FilePipeline.deliver(blob, mime, filename, { title: "MOMI MASALA Rate Card" });
+    const msg = toastForMethod(result.method);
+    if (msg) showToast(msg);
+    else hideToast();
   } catch (err) {
-    console.error(err);
-    showToast("এক্সপোর্ট ব্যর্থ হয়েছে, আবার চেষ্টা করুন");
+    console.error("[Export] failed:", err);
+    showToast("ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।");
   } finally {
-    triggerEl.querySelector("b").textContent = original;
-    triggerEl.style.pointerEvents = "";
+    labelEl.textContent = original;
+    exportInProgress = false;
+    setAllSaveOptionsDisabled(false);
   }
+}
+
+function setAllSaveOptionsDisabled(disabled) {
+  document.querySelectorAll(".save-option").forEach((el) => { el.style.pointerEvents = disabled ? "none" : ""; el.style.opacity = disabled ? "0.55" : ""; });
+  const shareBtn = document.getElementById("shareBtn");
+  if (shareBtn) shareBtn.style.pointerEvents = disabled ? "none" : "";
 }
 
 function openSaveMenu() {
@@ -187,6 +150,50 @@ function openSaveMenu() {
 function closeSaveMenu() {
   document.getElementById("saveMenu").classList.remove("open");
   document.getElementById("saveBtn").setAttribute("aria-expanded", "false");
+}
+
+/* ---------- Wiring: Share button ---------- */
+async function handleShareClick() {
+  if (exportInProgress) return;
+  if (!validateAllBeforeExport()) {
+    showToast("কিছু দাম/ওজন খালি বা ভুল আছে — শেয়ারের আগে ঠিক করুন");
+    return;
+  }
+  exportInProgress = true;
+  setAllSaveOptionsDisabled(true);
+
+  const shareBtn = document.getElementById("shareBtn");
+  const label = shareBtn.querySelector("span");
+  const original = label.textContent;
+  label.textContent = "...";
+  showToast("তৈরি হচ্ছে...", 60000);
+
+  try {
+    const { blob, mime } = await generateImageBlob("jpg");
+    const result = await FilePipeline.shareOnly(blob, mime, "momi-masala-ratecard.jpg", {
+      title: "MOMI MASALA",
+      text: "MOMI MASALA — Product Rate Card",
+    });
+    const msg = toastForMethod(result.method);
+    if (msg) showToast(msg);
+    else hideToast();
+  } catch (err) {
+    if (err && err.code === "UNSUPPORTED") {
+      showToast("এই ব্রাউজারে শেয়ারিং সমর্থিত নয় — এর বদলে Save ব্যবহার করুন");
+    } else {
+      console.error("[Share] failed:", err);
+      showToast("শেয়ার করা যায়নি। আবার চেষ্টা করুন।");
+    }
+  } finally {
+    label.textContent = original;
+    exportInProgress = false;
+    setAllSaveOptionsDisabled(false);
+  }
+}
+
+function hideToast() {
+  const toastEl = document.getElementById("toast");
+  toastEl.classList.remove("show");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -210,20 +217,5 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("optPng").addEventListener("click", (e) => handleSaveOption("png", e.currentTarget));
   document.getElementById("optJpg").addEventListener("click", (e) => handleSaveOption("jpg", e.currentTarget));
 
-  shareBtn.addEventListener("click", async () => {
-    if (!validateAllBeforeExport()) {
-      showToast("কিছু দাম/ওজন খালি বা ভুল আছে — শেয়ারের আগে ঠিক করুন");
-      return;
-    }
-    shareBtn.style.pointerEvents = "none";
-    const label = shareBtn.querySelector("span");
-    const original = label.textContent;
-    label.textContent = "...";
-    try {
-      await shareRateCard();
-    } finally {
-      label.textContent = original;
-      shareBtn.style.pointerEvents = "";
-    }
-  });
+  shareBtn.addEventListener("click", handleShareClick);
 });

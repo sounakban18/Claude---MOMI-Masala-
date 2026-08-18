@@ -56,9 +56,14 @@ js/ui-manage.js                Add-Product modal, generic confirm dialog, the
                              expand sheet, and the Backup & Data panel — all
                              the "app chrome" interactions that aren't the
                              rate card itself.
-js/export.js                   Save (PDF/PNG/JPG) + Share, reading from
-                             AppState.products so exports always reflect
-                             whatever's currently in the database.
+js/export.js                   Save (PDF/PNG/JPG) + Share generation logic,
+                             reading from AppState.products so exports
+                             always reflect whatever's currently in the
+                             database. Delivery goes through utils/file-pipeline.js.
+js/utils/file-pipeline.js      Cross-platform file delivery (the mobile
+                             download/share fix — see below). The only
+                             file that touches URL.createObjectURL,
+                             <a download>, or navigator.share directly.
 js/html2canvas.min.js / js/jspdf.min.js   Vendored, work fully offline.
 
 assets/products/*.jpg      Original seed product photos, kept for reference.
@@ -140,6 +145,52 @@ read. The seed images in `product-images.js` are base64 only because
 that's what a static JS file can hold; they get converted to Blobs
 once, during the first-launch migration, and from then on the database
 only ever deals in Blobs.
+
+## Mobile download/share fix (js/utils/file-pipeline.js)
+
+**Root cause found:** the previous file-delivery code only attempted
+the Web Share API on iOS. On Android — which is what the WebIntoApp
+WebView wraps — it went straight to an `<a download>` click on a
+`blob:` URL. Android WebViews generally have no download manager
+wired up for client-generated `blob:` URLs (that mechanism normally
+only fires for real HTTP downloads unless the host app explicitly
+implements a `DownloadListener`), so the click silently did nothing —
+and the old code still reported success regardless, since it never
+checked whether anything had actually happened.
+
+**The fix** (`js/utils/file-pipeline.js`) is a single shared delivery
+path used by both Save and Share, in this order:
+
+1. Validate the blob has real, non-zero content before doing anything.
+2. Try the Web Share API with a real `File` object on **any**
+   mobile/WebView context now, not just iOS — this is the path most
+   likely to actually work inside a WebView, since Chromium-based
+   WebViews (what WebIntoApp uses) support it via an Android share
+   intent.
+3. Fall back to a normal anchor + blob URL download.
+4. Fall back to opening the blob in a new tab (hands off to the
+   system browser, or allows a long-press "save image").
+5. Last resort: same thing with a `data:` URI, since some locked-down
+   WebViews block `blob:` navigation specifically but still allow
+   `data:` URIs.
+
+Each step is honestly reported back via a method-specific toast (e.g.
+"Download started" vs "Shared" vs "Opened in new tab — long-press to
+save") rather than one blanket "saved" message — the app never claims
+a file was saved when it can't actually confirm that.
+
+**Testing note:** I verified this end-to-end in headless Chromium with
+both a desktop context and an Android-device-emulated context (Pixel
+5 UA/viewport/touch), confirming the full fallback chain executes
+without errors and produces valid, correctly-sized, correctly-MIME'd
+files in both cases. I could not verify the Web Share API's actual
+behavior inside the real WebIntoApp WebView itself, since Playwright's
+Chromium doesn't implement `navigator.share` regardless of device
+emulation — that step should be tested in the built APK directly. If
+it still doesn't trigger a native share sheet there, the WebView build
+likely needs its manifest/config updated to grant the share intent
+permission (a WebIntoApp project setting, not something fixable from
+the web code alone).
 
 ## Notes on the export rendering
 
