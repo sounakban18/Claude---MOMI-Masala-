@@ -112,14 +112,26 @@ const FilePipeline = (() => {
     // 1. Web Share API with a real File — tried on ALL platforms now,
     //    not just iOS, since this is the path most likely to work
     //    inside the Android WebView that WebIntoApp wraps.
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: title || filename, text });
-        return { method: "share" };
-      } catch (err) {
-        if (err && err.name === "AbortError") return { method: "share-cancelled" };
-        console.warn("[FilePipeline] share failed, falling back:", err);
+    //    IMPORTANT: navigator.canShare() itself can throw on some
+    //    Android WebView builds with partial/buggy Web Share Level 2
+    //    (file-sharing) support, rather than returning false. That
+    //    exception was previously unguarded and aborted the entire
+    //    pipeline before it ever reached the download fallback below
+    //    — this whole block is now one try/catch so any failure here,
+    //    from feature detection through the actual share() call, just
+    //    falls through to strategy 2 instead of crashing everything.
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: title || filename, text });
+          return { method: "share" };
+        } catch (err) {
+          if (err && err.name === "AbortError") return { method: "share-cancelled" };
+          throw err;
+        }
       }
+    } catch (err) {
+      console.warn("[FilePipeline] share unavailable/failed, falling back:", err);
     }
 
     // 2. Standard anchor + blob URL download.
@@ -155,7 +167,18 @@ const FilePipeline = (() => {
     const file = new File([blob], filename, { type: mime });
 
     if (!navigator.share) throw Object.assign(new Error("Web Share API not available"), { code: "UNSUPPORTED" });
-    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+
+    // canShare() itself can throw on some WebView builds — treat that the
+    // same as "can't share files" rather than letting it crash the caller.
+    let canShareFiles = false;
+    try {
+      canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+    } catch (err) {
+      console.warn("[FilePipeline] canShare() threw, treating as unsupported:", err);
+      canShareFiles = false;
+    }
+
+    if (!canShareFiles) {
       // some browsers support share() for text/url but not files
       try {
         await navigator.share({ title: title || filename, text });

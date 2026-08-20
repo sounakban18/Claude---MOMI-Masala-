@@ -43,17 +43,57 @@ async function renderExportCanvas(scale = 2.5) {
   }
   await new Promise((r) => setTimeout(r, 60));
 
-  const canvas = await html2canvas(card, {
-    scale,
-    backgroundColor: "#FBF3E2",
-    useCORS: true,
-    logging: false,
-  });
-  return canvas;
+  // Real-mobile failure mode this guards against: a 9-product card at a
+  // flat scale of 2.5 can produce a canvas with 15-20M+ total pixels,
+  // which exceeds the GPU texture / canvas size limit on a lot of
+  // lower-end Android devices (limits as low as ~4096x4096 = ~16.7M px
+  // are common). When that limit is hit, canvas.toBlob() typically just
+  // resolves with null instead of throwing anything catchable earlier —
+  // so we clamp the *requested* scale up front to a safe total-pixel
+  // budget instead of always using a flat 2.5, based on the card's
+  // actual measured size (which varies with product count).
+  const SAFE_MAX_PIXELS = 14_000_000; // conservative, well under common device caps
+  const naturalWidth = card.offsetWidth;
+  const naturalHeight = card.offsetHeight;
+  const maxScaleForSafety = Math.sqrt(SAFE_MAX_PIXELS / (naturalWidth * naturalHeight));
+  const safeScale = Math.min(scale, maxScaleForSafety);
+
+  const attempts = [safeScale, safeScale * 0.7, 1.5, 1].filter((s, i, arr) => arr.indexOf(s) === i && s > 0);
+
+  let lastErr = null;
+  for (const attemptScale of attempts) {
+    try {
+      const canvas = await html2canvas(card, {
+        scale: attemptScale,
+        backgroundColor: "#FBF3E2",
+        useCORS: true,
+        logging: false,
+      });
+      if (canvas && canvas.width > 0 && canvas.height > 0) {
+        if (attemptScale !== attempts[0]) {
+          console.warn(`[Export] rendered at reduced scale ${attemptScale} after an earlier attempt failed`);
+        }
+        return canvas;
+      }
+      lastErr = new Error("html2canvas returned an empty canvas");
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[Export] html2canvas failed at scale ${attemptScale}, trying a lower scale:`, err);
+    }
+  }
+  throw lastErr || new Error("html2canvas failed at every attempted scale");
 }
 
 function canvasToBlob(canvas, mime, quality) {
-  return new Promise((resolve) => canvas.toBlob(resolve, mime, quality));
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("canvas.toBlob timed out (possible low-memory/mobile GPU limit)")), 20000);
+    try {
+      canvas.toBlob((blob) => { clearTimeout(timer); resolve(blob); }, mime, quality);
+    } catch (err) {
+      clearTimeout(timer);
+      reject(err);
+    }
+  });
 }
 
 /* ---------- PNG / JPG ---------- */
@@ -102,6 +142,24 @@ function toastForMethod(method) {
   }
 }
 
+/* ---------- specific, honest error messages instead of one generic string ---------- */
+function describeExportError(err) {
+  const msg = (err && err.message) || "";
+  if (/0 bytes|blob creation returned nothing/i.test(msg)) {
+    return "ছবি তৈরি হয়নি (খালি ফাইল) — ফোনের মেমরি কম থাকতে পারে, আবার চেষ্টা করুন";
+  }
+  if (/timed out/i.test(msg)) {
+    return "সময় বেশি লাগছে — নেটওয়ার্ক/মেমরি ধীর হতে পারে, আবার চেষ্টা করুন";
+  }
+  if (/every attempted scale|html2canvas/i.test(msg)) {
+    return "ছবি তৈরি করা যায়নি — ফোনের ব্রাউজার এত বড় ছবি তৈরি সমর্থন করছে না";
+  }
+  if (/delivery strategies failed/i.test(msg)) {
+    return "ফাইল তৈরি হয়েছে কিন্তু সেভ/শেয়ার করা যায়নি — ব্রাউজার সেটিংস দেখুন";
+  }
+  return "ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।";
+}
+
 /* ---------- Wiring: Save dropdown ---------- */
 let exportInProgress = false;
 
@@ -129,7 +187,7 @@ async function handleSaveOption(type, triggerEl) {
     else hideToast();
   } catch (err) {
     console.error("[Export] failed:", err);
-    showToast("ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।");
+    showToast(describeExportError(err));
   } finally {
     labelEl.textContent = original;
     exportInProgress = false;
@@ -182,7 +240,7 @@ async function handleShareClick() {
       showToast("এই ব্রাউজারে শেয়ারিং সমর্থিত নয় — এর বদলে Save ব্যবহার করুন");
     } else {
       console.error("[Share] failed:", err);
-      showToast("শেয়ার করা যায়নি। আবার চেষ্টা করুন।");
+      showToast(describeExportError(err));
     }
   } finally {
     label.textContent = original;
