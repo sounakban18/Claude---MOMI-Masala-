@@ -1,80 +1,76 @@
 /* =========================================================
    THEME.JS
-   Three modes: "light" | "dark" | "system" (default). Only
-   the app CHROME (backgrounds, panels, sheets, buttons that
-   aren't brand-coloured) responds to this — see the
-   [data-theme="dark"] overrides in style.css. The rate card
-   itself (.ratecard, in both the live editor and the export
-   render) intentionally ignores theme and always renders in
-   its normal MOMI MASALA brand colours, so exported files
-   never come out dark/inverted.
+   Three-mode theme system: AUTO (follow prefers-color-scheme),
+   LIGHT, DARK. The user's manual choice persists in
+   localStorage; AUTO listens to the OS-level media query and
+   reacts live.
+
+   Implementation notes:
+   - The resolved theme (light or dark) is exposed on
+     <html data-theme="..."> so CSS can target both modes.
+   - The user-chosen mode (auto | light | dark) is exposed on
+     <html data-theme-mode="..."> for the segmented-control
+     active state.
    ========================================================= */
 
 const ThemeManager = (() => {
-  const STORAGE_KEY = "momiThemePreference"; // "light" | "dark" | "system"
-  const mql = window.matchMedia("(prefers-color-scheme: dark)");
+  const STORAGE_KEY = "momi-masala-theme-mode";
+  const VALID = new Set(["auto", "light", "dark"]);
+  const mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
-  function getPreference() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  let currentMode = "auto";     // what the user picked
+  let currentResolved = "light"; // the actually-applied mode
+
+  function readStored() {
+    try {
+      const v = localStorage.getItem(STORAGE_KEY);
+      return VALID.has(v) ? v : "auto";
+    } catch (_) {
+      return "auto";
+    }
   }
 
-  function effectiveTheme(pref) {
-    if (pref === "system") return mql.matches ? "dark" : "light";
-    return pref;
+  function persist(mode) {
+    try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
   }
 
-  function apply(pref) {
-    const effective = effectiveTheme(pref);
-    document.documentElement.setAttribute("data-theme", effective);
-    document.documentElement.setAttribute("data-theme-pref", pref);
-    updateSelectorUI(pref);
+  function resolveMode(mode) {
+    if (mode === "light" || mode === "dark") return mode;
+    return (mq && mq.matches) ? "dark" : "light";
   }
 
-  function setPreference(pref) {
-    localStorage.setItem(STORAGE_KEY, pref);
-    apply(pref);
+  function apply() {
+    currentResolved = resolveMode(currentMode);
+    const html = document.documentElement;
+    html.setAttribute("data-theme", currentResolved);
+    html.setAttribute("data-theme-mode", currentMode);
   }
 
-  function updateSelectorUI(pref) {
-    document.querySelectorAll(".theme-option").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.theme === pref);
-    });
-    const icon = document.getElementById("themeBtnIcon");
-    if (!icon) return;
-    const effective = effectiveTheme(pref);
-    icon.textContent = pref === "system" ? "◐" : effective === "dark" ? "☾" : "☀";
+  function set(mode) {
+    if (!VALID.has(mode)) mode = "auto";
+    currentMode = mode;
+    persist(mode);
+    apply();
+    // notify any UI listeners (the segmented control updates active state)
+    document.dispatchEvent(new CustomEvent("themechange", {
+      detail: { mode: currentMode, resolved: currentResolved },
+    }));
   }
+
+  function getMode() { return currentMode; }
+  function getResolved() { return currentResolved; }
 
   function init() {
-    apply(getPreference());
-    // live-update when the OS theme changes, but only while "system" is selected
-    mql.addEventListener("change", () => {
-      if (getPreference() === "system") apply("system");
-    });
+    currentMode = readStored();
+    apply();
+    if (mq && typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", () => {
+        if (currentMode === "auto") apply();
+      });
+    }
   }
 
-  return { init, setPreference, getPreference };
+  return { init, set, getMode, getResolved };
 })();
 
-document.addEventListener("DOMContentLoaded", () => {
-  ThemeManager.init();
-
-  const themeBtn = document.getElementById("themeBtn");
-  const themeMenu = document.getElementById("themeMenu");
-  if (!themeBtn || !themeMenu) return;
-
-  themeBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    themeMenu.classList.toggle("open");
-  });
-  document.addEventListener("click", (e) => {
-    if (!themeMenu.contains(e.target) && e.target !== themeBtn) themeMenu.classList.remove("open");
-  });
-  document.querySelectorAll(".theme-option").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      ThemeManager.setPreference(btn.dataset.theme);
-      themeMenu.classList.remove("open");
-    });
-  });
-});
+window.ThemeManager = ThemeManager;

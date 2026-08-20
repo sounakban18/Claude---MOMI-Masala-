@@ -1,9 +1,12 @@
 /* =========================================================
    EXPORT.JS
-   Generates the PDF/PNG/JPG from the live AppState and hands
-   the resulting file to FilePipeline.deliver() for the actual
-   cross-platform download/share handling (see
-   js/utils/file-pipeline.js for the mobile-download fix).
+   Generates the PDF/PNG/JPG from the LIVE AppState (so edits
+   always reflect in the exported file) and hands the result to
+   FilePipeline.deliver() for cross-platform download/share.
+
+   Every stage of the pipeline tags its errors with `err.stage`,
+   which is logged to the console for debugging. The user-facing
+   toast stays short and friendly.
    ========================================================= */
 
 function validateAllBeforeExport() {
@@ -31,110 +34,165 @@ function waitForImages(root) {
   );
 }
 
-async function renderExportCanvas(scale = 2.5) {
-  const host = document.getElementById("exportHost");
-  host.innerHTML = "";
-  const card = buildRateCard(false); // clean, non-editable render from latest AppState
-  host.appendChild(card);
-
-  await waitForImages(card);
+async function ensureFontsLoaded() {
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch (e) {}
   }
-  await new Promise((r) => setTimeout(r, 60));
+}
 
-  // Real-mobile failure mode this guards against: a 9-product card at a
-  // flat scale of 2.5 can produce a canvas with 15-20M+ total pixels,
-  // which exceeds the GPU texture / canvas size limit on a lot of
-  // lower-end Android devices (limits as low as ~4096x4096 = ~16.7M px
-  // are common). When that limit is hit, canvas.toBlob() typically just
-  // resolves with null instead of throwing anything catchable earlier —
-  // so we clamp the *requested* scale up front to a safe total-pixel
-  // budget instead of always using a flat 2.5, based on the card's
-  // actual measured size (which varies with product count).
-  const SAFE_MAX_PIXELS = 14_000_000; // conservative, well under common device caps
-  const naturalWidth = card.offsetWidth;
-  const naturalHeight = card.offsetHeight;
-  const maxScaleForSafety = Math.sqrt(SAFE_MAX_PIXELS / (naturalWidth * naturalHeight));
-  const safeScale = Math.min(scale, maxScaleForSafety);
+/* Tag a thrown error with a stage + the current snapshot so the
+   console makes the failure obvious. */
+function tagStage(err, stage, extra) {
+  if (!err) return;
+  err.stage = err.stage || stage;
+  if (extra) Object.assign(err, extra);
+  return err;
+}
 
-  const attempts = [safeScale, safeScale * 0.7, 1.5, 1].filter((s, i, arr) => arr.indexOf(s) === i && s > 0);
+/* Render the off-screen rate card and turn it into a canvas. */
+async function renderExportCanvas(scale = 2.5) {
+  const host = document.getElementById("exportHost");
+  host.innerHTML = "";
+  const card = buildRateCard(false); // clean, non-editable render
+  host.appendChild(card);
 
-  let lastErr = null;
-  for (const attemptScale of attempts) {
-    try {
-      const canvas = await html2canvas(card, {
-        scale: attemptScale,
-        backgroundColor: "#FBF3E2",
-        useCORS: true,
-        logging: false,
-      });
-      if (canvas && canvas.width > 0 && canvas.height > 0) {
-        if (attemptScale !== attempts[0]) {
-          console.warn(`[Export] rendered at reduced scale ${attemptScale} after an earlier attempt failed`);
-        }
-        return canvas;
-      }
-      lastErr = new Error("html2canvas returned an empty canvas");
-    } catch (err) {
-      lastErr = err;
-      console.warn(`[Export] html2canvas failed at scale ${attemptScale}, trying a lower scale:`, err);
-    }
+  try {
+    await waitForImages(card);
+  } catch (e) {
+    tagStage(e, "image-load", { where: "waitForImages" });
+    throw e;
   }
-  throw lastErr || new Error("html2canvas failed at every attempted scale");
+  await ensureFontsLoaded();
+  // small settle delay for layout
+  await new Promise((r) => setTimeout(r, 80));
+
+  if (typeof html2canvas !== "function") {
+    const err = new Error("html2canvas library is not loaded");
+    err.stage = "library-load";
+    throw err;
+  }
+
+  try {
+    const canvas = await html2canvas(card, {
+      scale,
+      backgroundColor: "#FBF3E2",
+      useCORS: true,
+      logging: false,
+      allowTaint: false,
+    });
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      const err = new Error("html2canvas returned an empty canvas");
+      err.stage = "canvas-render";
+      throw err;
+    }
+    return canvas;
+  } catch (e) {
+    tagStage(e, "canvas-render", { where: "html2canvas" });
+    throw e;
+  }
 }
 
 function canvasToBlob(canvas, mime, quality) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("canvas.toBlob timed out (possible low-memory/mobile GPU limit)")), 20000);
+    if (!canvas || typeof canvas.toBlob !== "function") {
+      const err = new Error("canvas.toBlob is not available in this browser");
+      err.stage = "toBlob-availability";
+      return reject(err);
+    }
     try {
-      canvas.toBlob((blob) => { clearTimeout(timer); resolve(blob); }, mime, quality);
-    } catch (err) {
-      clearTimeout(timer);
-      reject(err);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            const err = new Error("canvas.toBlob returned null");
+            err.stage = "toBlob";
+            return reject(err);
+          }
+          resolve(blob);
+        },
+        mime,
+        quality
+      );
+    } catch (e) {
+      tagStage(e, "toBlob");
+      reject(e);
     }
   });
 }
 
-/* ---------- PNG / JPG ---------- */
 async function generateImageBlob(type) {
-  const canvas = await renderExportCanvas(2.5);
+  let canvas;
+  try {
+    canvas = await renderExportCanvas(2.5);
+  } catch (e) { throw e; }
   const mime = type === "png" ? "image/png" : "image/jpeg";
   const quality = type === "png" ? undefined : 0.95;
-  const blob = await canvasToBlob(canvas, mime, quality);
+  let blob;
+  try {
+    blob = await canvasToBlob(canvas, mime, quality);
+  } catch (e) {
+    tagStage(e, "blob-creation", { format: type.toUpperCase() });
+    throw e;
+  }
   FilePipeline.validateBlob(blob, type.toUpperCase());
   return { blob, mime };
 }
 
-/* ---------- PDF ---------- */
 async function generatePdfBlob() {
-  const canvas = await renderExportCanvas(2.5);
-  const imgData = canvas.toDataURL("image/jpeg", 0.95);
+  let canvas;
+  try {
+    canvas = await renderExportCanvas(2.5);
+  } catch (e) { throw e; }
+  let imgData;
+  try {
+    imgData = canvas.toDataURL("image/jpeg", 0.95);
+    if (!imgData || imgData.length < 100) {
+      const err = new Error("canvas.toDataURL returned empty");
+      err.stage = "toDataURL";
+      throw err;
+    }
+  } catch (e) {
+    tagStage(e, "toDataURL", { format: "PDF" });
+    throw e;
+  }
+
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    const err = new Error("jsPDF library is not loaded");
+    err.stage = "library-load";
+    throw err;
+  }
 
   const { jsPDF } = window.jspdf;
-  // Match the PDF page to the rate card's own aspect ratio so nothing
-  // gets letterboxed, cropped, or stretched.
-  const widthMm = 210; // A4 width, portrait
+  const widthMm = 210;
   const heightMm = (canvas.height / canvas.width) * widthMm;
+  let doc;
+  try {
+    doc = new jsPDF({
+      orientation: heightMm >= widthMm ? "portrait" : "landscape",
+      unit: "mm",
+      format: [widthMm, heightMm],
+    });
+    doc.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm);
+  } catch (e) {
+    tagStage(e, "pdf-generation", { where: "jsPDF.addImage" });
+    throw e;
+  }
 
-  const doc = new jsPDF({
-    orientation: heightMm >= widthMm ? "portrait" : "landscape",
-    unit: "mm",
-    format: [widthMm, heightMm],
-  });
-  doc.addImage(imgData, "JPEG", 0, 0, widthMm, heightMm);
-
-  const blob = doc.output("blob");
+  let blob;
+  try {
+    blob = doc.output("blob");
+  } catch (e) {
+    tagStage(e, "pdf-output", { where: "doc.output" });
+    throw e;
+  }
   FilePipeline.validateBlob(blob, "PDF");
   return { blob, mime: "application/pdf" };
 }
 
-/* ---------- honest, method-aware feedback ---------- */
 function toastForMethod(method) {
   switch (method) {
     case "share": return "শেয়ার করা হয়েছে ✓";
-    case "share-text-only": return "শেয়ার করা হয়েছে (ছবি ছাড়া) — এই ব্রাউজারে ফাইল শেয়ার সমর্থিত নয়";
-    case "share-cancelled": return null; // user backed out — no message needed
+    case "share-text-only": return "শেয়ার করা হয়েছে (ছবি ছাড়া) — এই ব্রাউজারে ফাইল শে�়ার সমর্থিত নয়";
+    case "share-cancelled": return null;
     case "download": return "ডাউনলোড শুরু হয়েছে ✓";
     case "newtab": return "নতুন ট্যাবে খোলা হয়েছে — ছবিতে চেপে ধরে সেভ করুন";
     case "newtab-datauri": return "নতুন ট্যাবে খোলা হয়েছে — সেভ করতে চেপে ধরুন";
@@ -142,31 +200,38 @@ function toastForMethod(method) {
   }
 }
 
-/* ---------- specific, honest error messages instead of one generic string ---------- */
-function describeExportError(err) {
-  const msg = (err && err.message) || "";
-  if (/0 bytes|blob creation returned nothing/i.test(msg)) {
-    return "ছবি তৈরি হয়নি (খালি ফাইল) — ফোনের মেমরি কম থাকতে পারে, আবার চেষ্টা করুন";
+/* Map a thrown err.stage to a user-friendly Bengali message. The
+   detailed error is still in the console (where the spec wants
+   debugging info to live), but the user gets a clear hint. */
+function toastForError(err) {
+  if (err && err.code === "UNSUPPORTED") return "এই ব্রাউজারে শেয়ারিং সমর্থিত নয় — এর বদলে Save ব্যবহার করুন";
+  const stage = err && err.stage;
+  switch (stage) {
+    case "library-load":     return "এক্সপোর্ট লাইব্রেরি লোড হয়নি — পেজ রিফ্রেশ করে আবার চেষ্টা করুন";
+    case "image-load":       return "প্রোডাক্টের ছবি লোড হয়নি — কিছুক্ষণ অপেক্ষা করে আবার �েষ্টা করুন";
+    case "canvas-render":    return "রেট কার্ড রেন্ডার করা যায়নি — আবার চেষ্টা করুন";
+    case "toBlob":
+    case "toBlob-availability":
+    case "blob-creation":    return "ফাইল ত�রি করা যায়নি — আবার চেষ্টা করুন";
+    case "toDataURL":        return "ছবি রূপান্তর করা যায়নি — আবার চেষ্টা করুন";
+    case "pdf-generation":
+    case "pdf-output":       return "PDF তৈরি করা যায়নি — আবার চেষ্টা করুন";
+    case "object-url":
+    case "anchor-click":
+    case "newtab-blob":
+    case "newtab-datauri":
+    case "all-delivery":     return "�াইল ডেলিভার করা যায়নি — ব্রাউজার ডাউনলোড/শেয়ার সমর্থন করছে না";
+    default:                 return "ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।";
   }
-  if (/timed out/i.test(msg)) {
-    return "সময় বেশি লাগছে — নেটওয়ার্ক/মেমরি ধীর হতে পারে, আবার চেষ্টা করুন";
-  }
-  if (/every attempted scale|html2canvas/i.test(msg)) {
-    return "ছবি তৈরি করা যায়নি — ফোনের ব্রাউজার এত বড় ছবি তৈরি সমর্থন করছে না";
-  }
-  if (/delivery strategies failed/i.test(msg)) {
-    return "ফাইল তৈরি হয়েছে কিন্তু সেভ/শেয়ার করা যায়নি — ব্রাউজার সেটিংস দেখুন";
-  }
-  return "ফাইল তৈরি করা যায়নি। আবার চেষ্টা করুন।";
 }
 
 /* ---------- Wiring: Save dropdown ---------- */
 let exportInProgress = false;
 
 async function handleSaveOption(type, triggerEl) {
-  if (exportInProgress) return; // prevent overlapping export requests
+  if (exportInProgress) return;
   if (!validateAllBeforeExport()) {
-    showToast("কিছু দাম/ওজন খালি বা ভুল আছে — এক্সপোর্টের আগে ঠিক করুন");
+    showToast("কিছু দাম/ওজন খালি বা ভুল আছে — এক্সপোর্�ের আগে ঠিক করুন");
     return;
   }
   closeSaveMenu();
@@ -179,15 +244,24 @@ async function handleSaveOption(type, triggerEl) {
   showToast("রেট কার্ড তৈরি হচ্ছে...", 60000);
 
   try {
-    const { blob, mime } = type === "pdf" ? await generatePdfBlob() : await generateImageBlob(type);
+    const { blob, mime } = type === "pdf"
+      ? await generatePdfBlob()
+      : await generateImageBlob(type);
     const filename = `momi-masala-ratecard.${type}`;
-    const result = await FilePipeline.deliver(blob, mime, filename, { title: "MOMI MASALA Rate Card" });
+    const result = await FilePipeline.deliver(blob, mime, filename, {
+      title: "MOMI MASALA Rate Card",
+    });
     const msg = toastForMethod(result.method);
     if (msg) showToast(msg);
     else hideToast();
   } catch (err) {
-    console.error("[Export] failed:", err);
-    showToast(describeExportError(err));
+    console.error("[Export.save]", {
+      type,
+      stage: err && err.stage,
+      message: err && err.message,
+      stack: err && err.stack,
+    });
+    showToast(toastForError(err));
   } finally {
     labelEl.textContent = original;
     exportInProgress = false;
@@ -196,7 +270,10 @@ async function handleSaveOption(type, triggerEl) {
 }
 
 function setAllSaveOptionsDisabled(disabled) {
-  document.querySelectorAll(".save-option").forEach((el) => { el.style.pointerEvents = disabled ? "none" : ""; el.style.opacity = disabled ? "0.55" : ""; });
+  document.querySelectorAll(".save-option").forEach((el) => {
+    el.style.pointerEvents = disabled ? "none" : "";
+    el.style.opacity = disabled ? "0.55" : "";
+  });
   const shareBtn = document.getElementById("shareBtn");
   if (shareBtn) shareBtn.style.pointerEvents = disabled ? "none" : "";
 }
@@ -214,7 +291,7 @@ function closeSaveMenu() {
 async function handleShareClick() {
   if (exportInProgress) return;
   if (!validateAllBeforeExport()) {
-    showToast("কিছু দাম/ওজন খালি বা ভুল আছে — শেয়ারের আগে ঠিক করুন");
+    showToast("কিছু দাম/ওজন খালি বা ভুল আছে — শেয়ারের আগে �িক করুন");
     return;
   }
   exportInProgress = true;
@@ -236,12 +313,13 @@ async function handleShareClick() {
     if (msg) showToast(msg);
     else hideToast();
   } catch (err) {
-    if (err && err.code === "UNSUPPORTED") {
-      showToast("এই ব্রাউজারে শেয়ারিং সমর্থিত নয় — এর বদলে Save ব্যবহার করুন");
-    } else {
-      console.error("[Share] failed:", err);
-      showToast(describeExportError(err));
-    }
+    console.error("[Export.share]", {
+      stage: err && err.stage,
+      code: err && err.code,
+      message: err && err.message,
+      stack: err && err.stack,
+    });
+    showToast(toastForError(err));
   } finally {
     label.textContent = original;
     exportInProgress = false;

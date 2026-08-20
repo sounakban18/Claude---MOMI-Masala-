@@ -234,6 +234,52 @@ document.addEventListener("DOMContentLoaded", () => {
     closeExpandSheet();
     closeAddProductModal();
     closeBackupPanel();
+    closeThemeSheet();
     dismissConfirmDialog();
   });
+});
+
+/* ---------- theme sheet (auto / light / dark) ---------- */
+
+function openThemeSheet() {
+  const sheet = document.getElementById("themeSheet");
+  syncThemeSeg();
+  sheet.classList.add("open");
+  document.body.classList.add("sheet-open");
+}
+
+function closeThemeSheet() {
+  const sheet = document.getElementById("themeSheet");
+  if (sheet) sheet.classList.remove("open");
+  document.body.classList.remove("sheet-open");
+}
+
+function syncThemeSeg() {
+  const mode = window.ThemeManager ? window.ThemeManager.getMode() : "auto";
+  document.querySelectorAll(".theme-seg-opt").forEach((b) => {
+    b.classList.toggle("active", b.dataset.mode === mode);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (!window.ThemeManager) return;
+  const themeBtn = document.getElementById("themeBtn");
+  const themeSheet = document.getElementById("themeSheet");
+  const themeClose = document.getElementById("closeThemeSheet");
+  const themeSeg = document.getElementById("themeSeg");
+
+  if (themeBtn) themeBtn.addEventListener("click", openThemeSheet);
+  if (themeClose) themeClose.addEventListener("click", closeThemeSheet);
+  if (themeSeg) {
+    themeSeg.querySelectorAll(".theme-seg-opt").forEach((b) => {
+      b.addEventListener("click", () => {
+        window.ThemeManager.set(b.dataset.mode);
+        syncThemeSeg();
+        closeThemeSheet();
+      });
+    });
+  }
+
+  syncThemeSeg();
+  document.addEventListener("themechange", syncThemeSeg);
 });
