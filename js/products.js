@@ -43,6 +43,7 @@ function formatWeightKg(kg) {
 const BRAND = {
   logo: LOGO_IMAGE,
   banner: SHOP_BANNER,
+  nameBn: "মমি মসলা",
   nameEn: "MOMI MASALA",
   tagline: "Premium Spice Collection",
   taglineBn: "প্রিমিয়াম স্পাইস কালেকশন",
@@ -55,7 +56,5 @@ const BRAND = {
 const CONTACT = {
   callPhone: "9674165494",
   whatsappPhone: "7866051940",
-  callPhoneTel: "tel:+919674165494",
-  whatsappPhoneTel: "tel:+917866051940",
   address: "নীহারবিন্দু আবাসন, সরোজ পার্ক, বারাসাত",
 };

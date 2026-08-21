@@ -1,9 +1,3 @@
-/* =========================================================
-   COLOR SYSTEM
-   Light is the default. [data-theme="dark"] overrides
-   only the variables that need to change — every component
-   inherits the new palette automatically.
-   ========================================================= */
 :root {
   --maroon: #7A1F3D;
   --maroon-deep: #4F1129;
@@ -13,93 +7,68 @@
   --gold-pale: #F3E3B8;
   --green: #2F9E6E;
   --green-deep: #1F7A54;
-
-  /* light-mode palette */
   --cream: #FBF3E2;
   --cream-2: #F5E8CC;
   --ink: #241B22;
   --muted: #8A7C82;
 
-  --app-bg-1: #F6F1EA;
-  --app-bg-2: #EFE7DC;
-  --app-bg-3: #EAE0D2;
-  --surface: #FFFFFF;
-  --surface-2: #FFFFFF;
-  --surface-translucent: rgba(255, 255, 255, 0.62);
-  --surface-translucent-strong: rgba(255, 255, 255, 0.82);
-  --border: rgba(255, 255, 255, 0.75);
-  --border-strong: rgba(122, 31, 61, 0.18);
-  --border-soft: rgba(122, 31, 61, 0.12);
-  --shadow-color: rgba(79, 17, 41, 0.14);
-  --shadow-color-2: rgba(79, 17, 41, 0.22);
-  --shadow-color-3: rgba(79, 17, 41, 0.08);
-  --input-bg: #FFFFFF;
-  --field-edit-bg: rgba(255,255,255,0.55);
-
-  --glass: var(--surface-translucent);
-  --glass-strong: var(--surface-translucent-strong);
-  --glass-border: var(--border);
-
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 10px 34px rgba(79, 17, 41, 0.14);
   --radius-lg: 26px;
   --radius-md: 18px;
   --radius-sm: 13px;
-
-  color-scheme: light;
-}
-
-[data-theme="dark"] {
-  --maroon: #D88BA6;
-  --maroon-deep: #F0B6CB;
-  --maroon-soft: #B05F7B;
-  --gold: #E7C46A;
-  --gold-soft: #F1D78E;
-  --gold-pale: #5A4520;
-  --green: #5FC79A;
-  --green-deep: #4DAB81;
-
-  --cream: #1B141C;
-  --cream-2: #221A23;
-  --ink: #F3E8EE;
-  --muted: #B19DA9;
-
-  --app-bg-1: #120C16;
-  --app-bg-2: #1A1320;
-  --app-bg-3: #221829;
-  --surface: #221A28;
-  --surface-2: #2B2230;
-  --surface-translucent: rgba(43, 34, 48, 0.78);
-  --surface-translucent-strong: rgba(43, 34, 48, 0.92);
-  --border: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --border-soft: rgba(255, 255, 255, 0.08);
-  --shadow-color: rgba(0, 0, 0, 0.45);
-  --shadow-color-2: rgba(0, 0, 0, 0.55);
-  --shadow-color-3: rgba(0, 0, 0, 0.35);
-  --input-bg: #2A2030;
-  --field-edit-bg: rgba(255,255,255,0.06);
-
-  --glass: var(--surface-translucent);
-  --glass-strong: var(--surface-translucent-strong);
-  --glass-border: var(--border);
-
-  color-scheme: dark;
 }
 
 /* =========================================================
-   BASE
+   DARK MODE
+   Only redefines the *neutral* UI variables (surfaces, glass,
+   text). Brand colours (--maroon, --gold, --green) are left
+   untouched so buttons/accents stay recognisably "MOMI MASALA"
+   in both themes. The very next rule re-pins the rate card
+   itself back to its fixed light/brand values regardless of
+   theme, so the exported artwork never inverts — dark mode is
+   for the surrounding app only.
    ========================================================= */
+:root[data-theme="dark"] {
+  --cream: #1E1720;
+  --cream-2: #241B29;
+  --ink: #F0E6EA;
+  --muted: #B8A6B0;
+  --maroon-deep: #E491AF;
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-strong: rgba(255, 255, 255, 0.11);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.ratecard, #exportHost .ratecard {
+  --cream: #FBF3E2;
+  --cream-2: #F5E8CC;
+  --ink: #241B22;
+  --muted: #8A7C82;
+  --maroon-deep: #4F1129;
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 10px 34px rgba(79, 17, 41, 0.14);
+}
+
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; }
-html { transition: background-color .25s ease; }
 
 body {
-  background: linear-gradient(180deg, var(--app-bg-1) 0%, var(--app-bg-2) 45%, var(--app-bg-3) 100%);
+  background: linear-gradient(180deg, #F6F1EA 0%, #EFE7DC 45%, #EAE0D2 100%);
   font-family: 'Noto Sans Bengali', 'Poppins', sans-serif;
   color: var(--ink);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
-  transition: background .25s ease, color .2s ease;
+  transition: background .25s ease, color .25s ease;
+}
+[data-theme="dark"] body {
+  background: linear-gradient(180deg, #17111C 0%, #1C1420 45%, #201622 100%);
 }
 
 /* ---------- Soft blurred colour blobs behind the glass ---------- */
@@ -109,7 +78,7 @@ body {
 .blob-3 { width: 320px; height: 320px; bottom: -100px; left: 20%; background: var(--green); opacity: .16; }
 
 /* ================================================================
-   APP BAR — sticky glass header, holds Share + Save + Theme
+   APP BAR — sticky glass header, holds Share + Save
    ================================================================ */
 .app-bar {
   position: sticky;
@@ -117,10 +86,9 @@ body {
   z-index: 100;
   backdrop-filter: blur(22px) saturate(160%);
   -webkit-backdrop-filter: blur(22px) saturate(160%);
-  background: var(--surface-translucent);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 24px var(--shadow-color-3);
-  transition: background .25s ease, border-color .25s ease;
+  background: var(--glass);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: 0 4px 24px rgba(79, 17, 41, 0.06);
 }
 .app-bar-inner {
   max-width: 760px;
@@ -134,11 +102,10 @@ body {
 .app-id { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; overflow: hidden; }
 .app-id-title {
   font-family: 'Baloo Da 2', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
+  font-weight: 700;
+  font-size: 16px;
   color: var(--maroon-deep);
   white-space: nowrap;
-  letter-spacing: .3px;
 }
 .app-id-sub {
   font-family: 'Poppins', sans-serif;
@@ -151,44 +118,31 @@ body {
   text-overflow: ellipsis;
 }
 
-/* ---------- Header controls: Theme + Data + Share + Save ---------- */
+/* ---------- Header controls: Share + Save ---------- */
 .header-controls { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
 .glass-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface-translucent);
+  background: var(--glass);
   backdrop-filter: blur(14px) saturate(160%);
   -webkit-backdrop-filter: blur(14px) saturate(160%);
   color: var(--maroon-deep);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   border-radius: 999px;
   padding: 9px 14px;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
-  box-shadow: 0 3px 10px var(--shadow-color-3);
-  transition: transform .15s cubic-bezier(.2,.8,.3,1), background .15s ease, box-shadow .15s ease, color .2s ease;
+  box-shadow: 0 3px 10px rgba(79, 17, 41, 0.08);
+  transition: transform .15s cubic-bezier(.2,.8,.3,1), background .15s ease, box-shadow .15s ease;
 }
-.glass-btn:hover { background: var(--surface-translucent-strong); box-shadow: 0 5px 14px var(--shadow-color); }
-.glass-btn:active { transform: scale(0.95); }
+.glass-btn:hover { background: rgba(255,255,255,0.72); box-shadow: 0 5px 14px rgba(79,17,41,0.12); }
+.glass-btn:active { transform: scale(0.95); background: rgba(255,255,255,0.8); }
 .share-btn span { display: none; }
 @media (min-width: 400px) { .share-btn span { display: inline; } }
-
-/* theme button shows one of three icons depending on the
-   user-selected mode (auto/light/dark) */
-#themeBtn .ic-light, #themeBtn .ic-dark { display: none; }
-[data-theme-mode="light"] #themeBtn .ic-auto,
-[data-theme-mode="light"] #themeBtn .ic-dark { display: none; }
-[data-theme-mode="light"] #themeBtn .ic-light { display: block; }
-[data-theme-mode="dark"] #themeBtn .ic-auto,
-[data-theme-mode="dark"] #themeBtn .ic-light { display: none; }
-[data-theme-mode="dark"] #themeBtn .ic-dark { display: block; }
-[data-theme-mode="auto"] #themeBtn .ic-light,
-[data-theme-mode="auto"] #themeBtn .ic-dark { display: none; }
-[data-theme-mode="auto"] #themeBtn .ic-auto { display: block; }
 
 .save-btn .chev { transition: transform .2s ease; opacity: .7; }
 .save-menu.open .save-btn .chev { transform: rotate(180deg); }
@@ -204,7 +158,7 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  box-shadow: 0 16px 40px var(--shadow-color-2);
+  box-shadow: 0 16px 40px rgba(79, 17, 41, 0.22);
   padding: 8px;
   display: flex;
   flex-direction: column;
@@ -230,11 +184,9 @@ body {
   text-align: left;
   transition: background .15s ease, transform .1s ease;
   font-family: 'Poppins', sans-serif;
-  color: var(--ink);
 }
-.save-option:hover { background: rgba(122, 31, 61, 0.10); }
-[data-theme="dark"] .save-option:hover { background: rgba(255, 255, 255, 0.08); }
-.save-option:active { transform: scale(0.98); }
+.save-option:hover { background: rgba(122, 31, 61, 0.08); }
+.save-option:active { transform: scale(0.98); background: rgba(122, 31, 61, 0.13); }
 
 .opt-ic {
   flex: 0 0 auto;
@@ -283,20 +235,16 @@ body {
 .hint b { color: var(--maroon-deep); }
 
 /* ================================================================
-   THE RATE CARD — branded print/share design.
-   Theme of the editor UI is decoupled from this card; the card
-   keeps the cream/maroon/gold palette in BOTH modes so the
-   exported file always matches the shop's identity.
+   THE RATE CARD — richer, traditional-premium, NOT glassy
    ================================================================ */
 .ratecard {
   position: relative;
   width: 720px;
-  background: linear-gradient(160deg, #FBF3E2 0%, #F5E8CC 100%);
-  border: 2px solid #7A1F3D;
+  background: linear-gradient(160deg, var(--cream) 0%, var(--cream-2) 100%);
+  border: 2px solid var(--maroon);
   border-radius: var(--radius-lg);
   padding: 28px 30px 26px;
   box-shadow: 0 14px 40px rgba(79, 17, 41, 0.18);
-  color: #241B22;
 }
 .ratecard::before {
   content: "";
@@ -310,80 +258,98 @@ body {
 /* ---------- Header ---------- */
 .header { position: relative; z-index: 1; text-align: center; }
 
-/* Prominent logo, centred */
 .brand-logo {
   width: 130px;
   height: auto;
   display: block;
-  margin: 0 auto 14px;
+  margin: 0 auto 10px;
   filter: drop-shadow(0 6px 14px rgba(79,17,41,0.22));
 }
 
-/* MOMI MASALA — the prominent brand wordmark */
+.brand-title-bn {
+  font-family: 'Baloo Da 2', sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1.1;
+  text-align: center;
+  margin: 0 0 14px;
+  letter-spacing: .5px;
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* fallback for renderers that can't do background-clip:text (see the
+     #exportHost override further down, which forces a solid colour) */
+}
+
+.banner-block {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid var(--gold);
+  box-shadow: 0 8px 22px rgba(79,17,41,0.16);
+  margin-bottom: 16px;
+}
+.shop-banner {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+}
+
+.brand-name-row { margin-bottom: 14px; }
 .brand-name-en {
   display: block;
   font-family: 'Poppins', sans-serif;
   font-weight: 800;
-  font-size: 32px;
-  letter-spacing: 6px;
-  color: #4F1129;
-  line-height: 1.05;
-  margin-bottom: 8px;
-  text-shadow: 0 2px 0 rgba(228,197,99,.18);
-}
-.brand-name-bn {
-  display: block;
-  font-family: 'Noto Sans Bengali', sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 1px;
-  color: #7A1F3D;
-  margin-bottom: 4px;
+  font-size: 22px;
+  letter-spacing: 5px;
+  color: var(--maroon-deep);
 }
 .brand-tagline {
   display: block;
-  margin-top: 2px;
+  margin-top: 4px;
   font-family: 'Noto Sans Bengali', sans-serif;
   font-weight: 500;
-  font-size: 11.5px;
-  color: #8A7C82;
+  font-size: 12px;
+  color: var(--muted);
   letter-spacing: .2px;
 }
 
-/* Phone numbers — directly underneath the brand name, big
-   and tappable. Wrap to a second line if the column is narrow. */
-.brand-phones {
+/* ---------- prominent, tappable contact numbers ---------- */
+.contact-row-main {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 8px 14px;
-  margin: 10px auto 14px;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
 }
-.brand-phone {
-  display: inline-flex;
+.contact-pill {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 7px;
+  padding: 11px 20px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #7A1F3D 0%, #4F1129 100%);
-  color: #fff;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
-  font-size: 14px;
-  letter-spacing: .4px;
+  font-size: 15px;
   text-decoration: none;
-  box-shadow: 0 5px 14px rgba(79,17,41,0.22);
-  border: 1px solid rgba(228,197,99,.5);
+  min-height: 44px;
+  box-sizing: border-box;
   transition: transform .15s ease, box-shadow .15s ease;
 }
-.brand-phone svg { color: #E4C563; flex: 0 0 auto; }
-.brand-phone:active { transform: scale(0.96); }
-
-/* The shop-banner image is hidden in this version — we replace
-   it with the prominent brand-name block + phones (per spec) */
-.banner-block { display: none; }
-.banner-contact { display: none; }
-.bc-item { display: none; }
+.contact-pill:active { transform: scale(0.96); }
+.contact-pill.call {
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(79,17,41,0.24);
+}
+.contact-pill.whatsapp {
+  background: linear-gradient(135deg, #2FB170 0%, #1F8E58 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(31,142,88,0.24);
+}
 
 .ratecard-pill {
   display: flex;
@@ -391,19 +357,19 @@ body {
   align-items: baseline;
   gap: 8px;
   margin: 0 auto 14px;
-  background: linear-gradient(135deg, #7A1F3D 0%, #4F1129 100%);
+  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
   padding: 9px 30px;
   border-radius: 999px;
   box-shadow: 0 6px 16px rgba(79,17,41,0.24);
   border: 1px solid rgba(228, 197, 99, 0.5);
 }
 .ratecard-pill .rc-bn { font-family: 'Baloo Da 2', sans-serif; font-weight: 700; font-size: 17px; color: #fff; }
-.ratecard-pill .rc-dot { color: #E4C563; font-size: 12px; }
-.ratecard-pill .rc-en { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: #E4C563; }
+.ratecard-pill .rc-dot { color: var(--gold-soft); font-size: 12px; }
+.ratecard-pill .rc-en { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 1.5px; color: var(--gold-soft); }
 
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, #C9A227 15%, #C9A227 85%, transparent);
+  background: linear-gradient(90deg, transparent, var(--gold) 15%, var(--gold) 85%, transparent);
   opacity: .55;
   margin-bottom: 22px;
 }
@@ -416,32 +382,27 @@ body {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+/* 9 products = odd count; centre the last card instead of a lopsided gap */
 .product-card.card-centered {
   grid-column: 1 / -1;
   width: calc(50% - 8px);
   margin: 0 auto;
 }
 
-/* ---------- Product card: glass, clean, photo-forward ---------- */
+/* ---------- Product card: simple, clean, photo-forward ---------- */
 .product-card {
   background: #FFFFFF;
   border: 1px solid rgba(122, 31, 61, 0.14);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(79,17,41,0.07);
-  transition: transform .22s cubic-bezier(.2,.8,.3,1), box-shadow .22s ease;
-  animation: card-in .35s ease both;
+  transition: transform .18s cubic-bezier(.2,.8,.3,1), box-shadow .18s ease;
 }
-@keyframes card-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.product-card:hover { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(79,17,41,0.16); }
+.product-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(79,17,41,0.12); }
 
-.card-photo { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #f2ead7; overflow: hidden; }
+.card-photo { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #f2ead7; }
 .photo-frame.single, .photo-frame.split { width: 100%; height: 100%; display: flex; }
-.photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s ease; }
-.product-card:hover .photo-frame img { transform: scale(1.04); }
+.photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .photo-frame.split img { width: 50%; }
 .photo-frame.split img:first-child { border-right: 1.5px solid rgba(255,255,255,0.9); }
 
@@ -451,7 +412,6 @@ body {
   left: 9px;
   background: rgba(20, 8, 14, 0.68);
   backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   color: #F3E3B8;
   font-family: 'Poppins', sans-serif;
   font-weight: 700;
@@ -469,11 +429,10 @@ body {
   font-family: 'Noto Sans Bengali', sans-serif;
   font-weight: 700;
   font-size: 17px;
-  color: #4F1129;
+  color: var(--maroon-deep);
   line-height: 1.25;
   white-space: normal;
   overflow-wrap: break-word;
-  word-wrap: break-word;
 }
 .p-en {
   display: block;
@@ -481,10 +440,9 @@ body {
   font-family: 'Poppins', sans-serif;
   font-weight: 500;
   font-size: 11.5px;
-  color: #8A7C82;
+  color: var(--muted);
   white-space: normal;
   overflow-wrap: break-word;
-  word-wrap: break-word;
 }
 
 .p-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -494,8 +452,8 @@ body {
   padding: 6px 12px;
   min-width: 0;
 }
-.meta-weight { background: #F3E3B8; }
-.meta-price { background: linear-gradient(135deg, #7A1F3D 0%, #4F1129 100%); }
+.meta-weight { background: var(--gold-pale); }
+.meta-price { background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%); }
 
 .field {
   font-family: 'Poppins', sans-serif;
@@ -516,13 +474,15 @@ body {
   transition: border-color .15s ease, transform .1s ease, box-shadow .15s ease;
   touch-action: manipulation;
 }
+/* Always-visible tap affordance (not hover-only, since touch devices have
+   no hover) so it's immediately obvious these two values are editable. */
 .editable .meta-weight { border-color: rgba(122, 31, 61, 0.28); }
 .editable .meta-price { border-color: rgba(255, 255, 255, 0.4); }
 .editable .meta-weight:hover { border-color: rgba(122,31,61,0.5); }
 .editable .meta-price:hover { border-color: rgba(228,197,99,0.85); }
 .editable .meta-weight:has(.editing), .editable .meta-price:has(.editing),
 .editable .meta-weight.field-editing, .editable .meta-price.field-editing {
-  border-color: #7A1F3D;
+  border-color: var(--maroon);
   border-style: solid;
 }
 .editable .meta-weight:active, .editable .meta-price:active { transform: scale(0.96); }
@@ -557,7 +517,7 @@ body {
   font-family: 'Baloo Da 2', sans-serif;
   font-weight: 700;
   font-size: 14.5px;
-  color: #4F1129;
+  color: var(--maroon-deep);
   margin: 24px 0 6px;
   position: relative;
   z-index: 1;
@@ -566,7 +526,7 @@ body {
   text-align: center;
   font-family: 'Noto Sans Bengali', sans-serif;
   font-size: 11px;
-  color: #8A7C82;
+  color: var(--muted);
   position: relative;
   z-index: 1;
 }
@@ -634,14 +594,14 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 10px 26px var(--shadow-color-2);
+  box-shadow: 0 10px 26px rgba(79,17,41,0.38);
   z-index: 90;
   transition: transform .18s cubic-bezier(.2,.8,.3,1), box-shadow .18s ease;
 }
-.fab:active { transform: scale(0.92); box-shadow: 0 6px 16px var(--shadow-color); }
+.fab:active { transform: scale(0.92); box-shadow: 0 6px 16px rgba(79,17,41,0.3); }
 
 /* ================================================================
-   SHEET BACKDROP + BOTTOM SHEETS (expand / add product / backup / theme)
+   SHEET BACKDROP + BOTTOM SHEETS (expand / add product / backup)
    ================================================================ */
 body.sheet-open { overflow: hidden; }
 
@@ -663,14 +623,13 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   max-width: 520px;
   margin: 0 auto;
   background: var(--cream);
-  color: var(--ink);
   border-radius: 26px 26px 0 0;
-  box-shadow: 0 -12px 40px var(--shadow-color-2);
+  box-shadow: 0 -12px 40px rgba(79,17,41,0.25);
   padding: 10px 20px calc(22px + env(safe-area-inset-bottom));
   max-height: 88vh;
   overflow-y: auto;
   transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.2,.8,.3,1), background .25s ease;
+  transition: transform .28s cubic-bezier(.2,.8,.3,1);
   z-index: 220;
 }
 .bottom-sheet.open { transform: translateY(0); }
@@ -686,19 +645,20 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   position: absolute;
   top: 14px;
   right: 16px;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(122,31,61,0.08);
-  border: none;
-  color: var(--maroon-deep);
+  background: rgba(20, 8, 14, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  z-index: 10;
 }
-[data-theme="dark"] .sheet-close { background: rgba(255,255,255,0.08); }
-
 .sheet-title {
   font-family: 'Baloo Da 2', sans-serif;
   font-weight: 700;
@@ -708,7 +668,8 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   text-align: center;
 }
 
-/* ---------- expand sheet ---------- */
+/* ---------- expand sheet: image with an overlapping glass info panel,
+   for a bit more depth/elevation in the expanded state ---------- */
 .expand-images {
   display: flex;
   gap: 8px;
@@ -731,7 +692,7 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   -webkit-backdrop-filter: blur(18px) saturate(160%);
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  box-shadow: 0 10px 30px var(--shadow-color);
+  box-shadow: 0 10px 30px rgba(79,17,41,0.16);
 }
 .expand-bn { display: block; font-family: 'Noto Sans Bengali', sans-serif; font-weight: 700; font-size: 22px; color: var(--maroon-deep); }
 .expand-en { display: block; margin-top: 2px; font-family: 'Poppins', sans-serif; font-size: 13px; color: var(--muted); }
@@ -774,8 +735,8 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
 }
 .text-input {
   width: 100%;
-  border: 1.5px solid var(--border-strong);
-  background: var(--input-bg);
+  border: 1.5px solid rgba(122,31,61,0.18);
+  background: var(--cream);
   border-radius: 12px;
   padding: 11px 13px;
   font-family: 'Noto Sans Bengali', 'Poppins', sans-serif;
@@ -785,7 +746,7 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   outline: none;
   transition: border-color .15s ease, box-shadow .15s ease;
 }
-.text-input:focus { border-color: var(--maroon); box-shadow: 0 0 0 3px rgba(122,31,61,0.18); }
+.text-input:focus { border-color: var(--maroon); box-shadow: 0 0 0 3px rgba(122,31,61,0.1); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 .sheet-primary-btn, .sheet-secondary-btn {
@@ -802,19 +763,18 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   border: none;
   cursor: pointer;
   margin-top: 6px;
-  transition: transform .15s ease, opacity .15s ease, background .15s ease;
+  transition: transform .15s ease, opacity .15s ease;
 }
-.sheet-primary-btn { background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%); color: #fff; box-shadow: 0 8px 20px var(--shadow-color); }
+.sheet-primary-btn { background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%); color: #fff; box-shadow: 0 8px 20px rgba(79,17,41,0.28); }
 .sheet-secondary-btn { background: rgba(122,31,61,0.08); color: var(--maroon-deep); }
-[data-theme="dark"] .sheet-secondary-btn { background: rgba(255,255,255,0.08); }
 .sheet-primary-btn:active, .sheet-secondary-btn:active { transform: scale(0.97); }
 .sheet-primary-btn:disabled { opacity: .6; }
 
 /* ---------- backup sheet ---------- */
 .backup-info {
-  background: var(--surface);
+  background: #fff;
   border-radius: 14px;
-  border: 1px solid var(--border-soft);
+  border: 1px solid rgba(122,31,61,0.12);
   padding: 4px 14px;
   margin-bottom: 16px;
 }
@@ -826,64 +786,11 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   font-family: 'Poppins', sans-serif;
   font-size: 12.5px;
   color: var(--muted);
-  border-bottom: 1px solid var(--border-soft);
+  border-bottom: 1px solid rgba(122,31,61,0.08);
 }
 .backup-info-row:last-child { border-bottom: none; }
 .backup-info-row b { color: var(--maroon-deep); font-size: 13.5px; }
 .backup-note { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 12px; text-align: center; }
-
-/* ---------- theme sheet / segmented control ---------- */
-.theme-seg {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.theme-seg-opt {
-  background: var(--surface);
-  border: 1.5px solid var(--border-strong);
-  border-radius: 14px;
-  padding: 12px 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  color: var(--ink);
-  transition: transform .12s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease;
-}
-.theme-seg-opt:active { transform: scale(0.97); }
-.theme-seg-opt .seg-ic {
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: rgba(122,31,61,0.10);
-  display: flex; align-items: center; justify-content: center;
-  color: var(--maroon-deep);
-  transition: background .15s ease, color .15s ease;
-}
-[data-theme="dark"] .theme-seg-opt .seg-ic { background: rgba(255,255,255,0.08); color: var(--maroon-deep); }
-.theme-seg-opt .seg-text { text-align: center; }
-.theme-seg-opt .seg-text b { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink); }
-.theme-seg-opt .seg-text small { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
-
-.theme-seg-opt.active {
-  background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-deep) 100%);
-  border-color: var(--maroon);
-  box-shadow: 0 8px 20px var(--shadow-color);
-}
-.theme-seg-opt.active .seg-ic { background: rgba(255,255,255,0.18); color: #fff; }
-.theme-seg-opt.active .seg-text b { color: #fff; }
-.theme-seg-opt.active .seg-text small { color: rgba(255,255,255,0.78); }
-
-.theme-note {
-  font-family: 'Noto Sans Bengali', sans-serif;
-  font-size: 11.5px;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.5;
-  margin: 4px 0 0;
-}
 
 /* ---------- confirm dialog ---------- */
 .confirm-modal {
@@ -893,10 +800,9 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
   width: calc(100% - 56px);
   max-width: 340px;
   background: var(--cream);
-  color: var(--ink);
   border-radius: 22px;
   padding: 22px 20px 18px;
-  box-shadow: 0 20px 50px var(--shadow-color-2);
+  box-shadow: 0 20px 50px rgba(79,17,41,0.3);
   opacity: 0;
   pointer-events: none;
   transition: opacity .18s ease, transform .18s cubic-bezier(.2,.8,.3,1);
@@ -920,23 +826,30 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
 }
 .confirm-actions button:active { transform: scale(0.96); }
 .confirm-cancel { background: rgba(122,31,61,0.08); color: var(--maroon-deep); }
-[data-theme="dark"] .confirm-cancel { background: rgba(255,255,255,0.08); }
 .confirm-ok { background: var(--maroon); color: #fff; }
 .confirm-ok.danger { background: linear-gradient(135deg, #C0392B, #922020); }
 
 /* off-screen render target used only for export — always rendered
-   without backdrop-filter, since that doesn't rasterize
-   reliably in html2canvas. */
+   without backdrop-filter/gradient-clip, since those don't rasterize
+   reliably in html2canvas; see export.js and the overrides below */
 #exportHost { position: absolute; left: -99999px; top: 0; width: 720px; }
 #exportHost .no-tag { backdrop-filter: none; -webkit-backdrop-filter: none; }
+#exportHost .brand-title-bn {
+  /* background-clip:text doesn't rasterize in html2canvas (confirmed
+     failure mode from an earlier round) — force solid brand colour for
+     the exported copy only; the live browser view still gets the gradient. */
+  background: none;
+  -webkit-text-fill-color: #4F1129;
+  color: #4F1129;
+}
 
-/* icon-only header button (Theme / Data) */
+/* icon-only header button (Data / backup) */
 .icon-btn { padding: 9px; }
 
 /* ---------- global touch responsiveness ---------- */
 .product-card, .fab, .glass-btn, .save-option, .sheet-primary-btn,
 .sheet-secondary-btn, .confirm-actions button, .remove-btn, .sheet-close,
-.image-picker, .field, .theme-seg-opt {
+.image-picker, .field {
   touch-action: manipulation;
 }
 
@@ -949,3 +862,53 @@ body.sheet-open .sheet-backdrop { opacity: 1; pointer-events: auto; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ================================================================
+   THEME SELECTOR (Light / System / Dark)
+   ================================================================ */
+.theme-menu { position: relative; }
+.theme-btn span { font-size: 15px; line-height: 1; }
+
+.theme-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 150px;
+  background: var(--glass-strong);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.22);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
+  pointer-events: none;
+  transition: opacity .18s cubic-bezier(.2,.8,.3,1), transform .18s cubic-bezier(.2,.8,.3,1);
+  z-index: 200;
+}
+.theme-dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background .15s ease;
+}
+.theme-option:hover { background: rgba(122,31,61,0.08); }
+.theme-option.active { background: rgba(122,31,61,0.14); color: var(--maroon-deep); }
+[data-theme="dark"] .theme-option.active { background: rgba(228,145,175,0.16); }
